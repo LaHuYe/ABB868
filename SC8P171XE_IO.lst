@@ -1,0 +1,4538 @@
+---- Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\main.c ----------------------------------------------------------------------
+1:                /*-------------------------------------------
+2:                /////////////////////////////////////////////////////////
+3:                //  Project: B98-K3 / 4 modes
+4:                //  Write by: yj
+5:                //  Date:     2024-03-22
+6:                //  Version:  V1
+7:                //  CheckSum:
+8:                //  MCU:      SC8P1711E/sop14
+9:                ////////////////////////////////////////////////////////
+10:               //
+11:               -------------------------------------------*/
+12:               
+13:               #include <sc.h>
+14:               #include "main.h"
+15:               
+16:               volatile bit Flag_250us;
+17:               volatile bit Flag_1ms;
+18:               volatile bit Flag_10ms;
+19:               unsigned char Cnt250us = 0;
+20:               unsigned int Cnt10ms = 0;
+21:               unsigned int Cnt1ms = 0;
+22:               unsigned char CntSleep;
+23:               
+24:               /////////////////////////////////////////// PortInit ///////////////////////////
+25:               void PortInit()
+26:               {
+27:               	TRISA = 0b00000000; // input=1,output=0
+  073A    0185    CLR	0x5
+28:               	PORTA = 0b00000000;
+  073B    1283    CLRB	0x3,5
+  073C    0185    CLR	0x5
+29:               	WPUA = 0b00000000; // FULL引脚，充电为低，满电为高阻态
+  073D    0187    CLR	0x7
+30:               	IOCA = 0b00000000;
+  073E    0189    CLR	0x9
+31:               
+32:               	TRISB = 0b00010111; // input=1,output=0
+  073F    3017    LDIA	0x17
+  0740    1683    SETB	0x3,5
+  0741    0086    LD	0x6,A
+33:               	PORTB = 0b00000000;
+  0742    1283    CLRB	0x3,5
+  0743    0186    CLR	0x6
+34:               	ANSELH = 0b00010000;
+  0744    3010    LDIA	0x10
+  0745    1683    SETB	0x3,5
+  0746    0094    LD	0x14,A
+35:               	WPUB = 0b00000111;
+  0747    3007    LDIA	0x7
+  0748    0095    LD	0x15,A
+36:               	IOCB = 0b00000000; // wakeup,
+  0749    0196    CLR	0x16
+  074A    0008    RET
+37:               }
+38:               
+39:               /////////////////////////////////////////// TimerConfig ///////////////////////////
+40:               void Timer0Cofng()
+41:               {
+42:               	OPTION_REG = 0B00000000; // TMR0时钟 Fsys/4 4Mhz  预分频 /32  0.125Mhz 8us
+  07D1    0181    CLR	0x1
+43:               
+44:               	// 50us
+45:               	TMR0 = 165; // 215;//165;			//实测132为1ms
+  07D2    30A5    LDIA	0xA5
+  07D3    1283    CLRB	0x3,5
+  07D4    0081    LD	0x1,A
+46:               
+47:               	T0IF = 0;
+  07D5    110B    CLRB	0xB,2
+48:               	T0IE = 1; // 使能Timer0溢出中断
+  07D6    168B    SETB	0xB,5
+  07D7    0008    RET
+49:               }
+50:               
+51:               /////////////////////////////////////////// TimerConfig ///////////////////////////
+52:               void Timer2Config()
+53:               {
+54:               	/////// timer2
+55:               	// PR2 = 24;					//=125*4*16/8M=1mS
+56:               	// TMR2IF = 0;
+57:               	// TMR2IE = 1;					//=
+58:               
+59:               	// T2CON = 0X78;			//=
+60:               	// TMR2ON=1;
+61:               	/////// timer2
+62:               	PR2 = 250; // 设定Timer初始值，定时周期是250us=250
+  079D    30FA    LDIA	0xFA
+  079E    1683    SETB	0x3,5
+  079F    0092    LD	0x12,A
+63:               	TMR2IF = 0;
+  07A0    1283    CLRB	0x3,5
+  07A1    108C    CLRB	0xC,1
+64:               	TMR2IE = 1;			// 使能Timer2溢出中断
+  07A2    1683    SETB	0x3,5
+  07A3    148C    SETB	0xC,1
+65:               	T2CON = 0B00011100; // 开启Timer2,设置TMR2的预分频比为1:1，后分频1:2
+  07A4    301C    LDIA	0x1C
+  07A5    1283    CLRB	0x3,5
+  07A6    0092    LD	0x12,A
+  07A7    0008    RET
+66:               }
+67:               
+68:               /////////////////////////////////////////// AdcConfig ///////////////////////////
+69:               void AdcConfig()
+70:               {
+71:               	ADCON0 = 0b00111101; // AN15
+  07E5    303D    LDIA	0x3D
+  07E6    1283    CLRB	0x3,5
+  07E7    009F    LD	0x1F,A
+72:               	ADCON1 = 0b00000000; // VDD
+  07E8    1683    SETB	0x3,5
+  07E9    019F    CLR	0x1F
+  07EA    0008    RET
+73:               }
+74:               
+75:               // /////////////////////////////////////////// PwmConfig ///////////////////////////
+76:               void PwmConfig()
+77:               {
+78:               	PWMCON = 0B01100000; // PWM选择时钟源为Fosc/16   8M/800=10000,10000/64=156
+  07D8    3060    LDIA	0x60
+  07D9    1283    CLRB	0x3,5
+  07DA    009B    LD	0x1B,A
+79:               	PWMTH = 0B00000000;	 // 周期的时钟分频在PWMCON选择
+  07DB    019A    CLR	0x1A
+80:               	PWMTL = 99;			 // 10K
+  07DC    3063    LDIA	0x63
+  07DD    0099    LD	0x19,A
+  07DE    0008    RET
+81:               }
+82:               
+83:               // #define _XTAL_FREQ 8000000UL		//如果用16M晶振则改为16000000UL
+84:               
+85:               void main(void)
+  067B    0000    NOP
+  067C    0064    CLRWDT
+86:               {
+87:               	asm("nop");
+88:               	asm("clrwdt");
+89:               	OSCCON = 0X70; // 为8M/4=2M
+  067D    3070    LDIA	0x70
+  067E    1683    SETB	0x3,5
+  067F    008F    LD	0xF,A
+90:               
+91:               	PortInit();
+  0680    273A    CALL	0x73A
+92:               	Timer0Cofng();
+  0681    27D1    CALL	0x7D1
+93:               	Timer2Config();
+  0682    279D    CALL	0x79D
+94:               	AdcConfig();
+  0683    27E5    CALL	0x7E5
+95:               	PwmConfig();
+  0684    27D8    CALL	0x7D8
+  0685    0064    CLRWDT
+96:               
+97:               	asm("clrwdt");
+98:               	INTCON |= 0XC0; // 开启中断
+  0686    30C0    LDIA	0xC0
+  0687    048B    ORR	0xB
+99:               	SWDTEN = 1;		// enable wdt
+  0688    1683    SETB	0x3,5
+  0689    1408    SETB	0x8,0
+100:              
+101:              	app_process_set_work_state(WORK_STATE_POWEROFF);
+  068A    3000    LDIA	0x0
+  068B    27EB    CALL	0x7EB
+102:              	app_process_set_water_state(WATER_WORK_STATE_POWEROFF);
+  068C    3000    LDIA	0x0
+  068D    27F0    CALL	0x7F0
+103:              
+104:              #if 0
+105:              	BatStates = 1;
+106:              	app_charge.Remind = 1;
+107:              
+108:              #endif
+109:              	// FlagOldMode = 1;
+110:              	// app_work_state = WORK_STATE_WORKING;
+111:              	// // work_mode.mode = 3;
+112:              	// // led_pwm_ctrl(LED_INDEX_1,ON);
+113:              	// app_charge.FullCharge = 1;
+114:              	// app_charge.Charge = 1;
+115:              	//  BatStates = 2;
+116:              	//  app_work_state = WORK_STATE_WORKING;
+117:              	// app_charge.LowPower = 1;
+118:              	while (1)
+  068E    0064    CLRWDT
+119:              	{
+120:              		asm("clrwdt");
+121:              
+122:              		if (Flag_10ms)
+  068F    1C7B    SNZB	0x7B,0
+  0690    2E8E    JP	0x68E
+123:              		{
+124:              			Flag_10ms = 0;
+  0691    107B    CLRB	0x7B,0
+125:              			app_adc_process();
+  0692    27FB    CALL	0x7FB
+126:              			app_process_charge();
+  0693    27FA    CALL	0x7FA
+127:              
+128:              			app_process_key();
+  0694    27DF    CALL	0x7DF
+129:              			app_process_work();		  // brush
+  0695    2786    CALL	0x786
+130:              			app_water_process_work(); // water
+  0696    275B    CALL	0x75B
+131:              
+132:              			app_process_go_to_sleep();
+  0697    2729    CALL	0x729
+133:              			process_led_remind_low_power();
+  0698    21C3    CALL	0x1C3
+  0699    2E8E    JP	0x68E
+134:              		}
+135:              	}
+136:              }
+137:              
+138:              /////////////////////////////////////////// GotoSleep ///////////////////////////
+139:              void GotoSleep()
+140:              {
+141:              	if (IO_KEY_BRUSH_PWR && IO_KEY_WATER_PWR && IO_KEY_WATER_MODE)
+  0417    1283    CLRB	0x3,5
+  0418    1906    SZB	0x6,2
+  0419    1C06    SNZB	0x6,0
+  041A    2C52    JP	0x452
+  041B    1C86    SNZB	0x6,1
+  041C    2C52    JP	0x452
+  041D    30C8    LDIA	0xC8
+142:              	{
+143:              
+144:              		CntSleep++;
+  041E    0AC5    INCR	0x45
+145:              		if (CntSleep >= 200)
+  041F    0245    SUBA	0x45
+  0420    1C03    SNZB	0x3,0
+  0421    0008    RET
+146:              		{
+147:              			CntSleep = 0;
+  0422    01C5    CLR	0x45
+148:              			// ADC
+149:              			ADCON0 = 0b00000000;
+  0423    019F    CLR	0x1F
+150:              			ADCON1 = 0b00000000;
+  0424    1683    SETB	0x3,5
+  0425    019F    CLR	0x1F
+151:              			//
+152:              			SWDTEN = 0;
+  0426    1008    CLRB	0x8,0
+153:              			WDTCON = 0x00;
+  0427    0188    CLR	0x8
+154:              			//
+155:              			GIE = 0;
+  0428    138B    CLRB	0xB,7
+156:              			TRISB = 0b00010111; // input=1,output=0
+  0429    3017    LDIA	0x17
+  042A    0086    LD	0x6,A
+157:              			WPUB = 0b00000111;
+  042B    3007    LDIA	0x7
+  042C    0095    LD	0x15,A
+158:              			TRISA = 0b00000000; // input=1,output=0
+  042D    0185    CLR	0x5
+159:              			PORTA = 0b00000000;
+  042E    1283    CLRB	0x3,5
+  042F    0185    CLR	0x5
+160:              			ChargePwmOut(0);
+  0430    3000    LDIA	0x0
+  0431    274B    CALL	0x74B
+161:              			//
+162:              			ANSELH = 0b00000000;
+  0432    1683    SETB	0x3,5
+  0433    0194    CLR	0x14
+163:              			//
+164:              
+165:              			IOCA = 0b00000000;
+  0434    1283    CLRB	0x3,5
+  0435    0189    CLR	0x9
+166:              			IOCB = 0b00010111; // wakeup,
+  0436    3017    LDIA	0x17
+  0437    1683    SETB	0x3,5
+  0438    0096    LD	0x16,A
+167:              
+168:              			RAIE = 1;
+  0439    158C    SETB	0xC,3
+169:              			RBIE = 1;
+  043A    158B    SETB	0xB,3
+170:              			PEIE = 1;
+  043B    170B    SETB	0xB,6
+171:              
+172:              			RAIF = 0; // clear flag
+  043C    1283    CLRB	0x3,5
+  043D    118C    CLRB	0xC,3
+173:              			PORTA;	  /// this must have
+  043E    0805    LD	A,0x5
+174:              			RBIF = 0; // clear flag
+  043F    100B    CLRB	0xB,0
+175:              			PORTB;	  /// this must have
+  0440    0806    LD	A,0x6
+  0441    0064    CLRWDT
+  0442    0063    STOP
+  0443    0000    NOP
+  0444    0000    NOP
+  0445    0000    NOP
+176:              
+177:              			asm("clrwdt");
+178:              			asm("sleep"); /// goto sleep
+179:              
+180:              			asm("nop"); /// wake up
+181:              			asm("nop");
+182:              			asm("nop");
+183:              			// ADC
+184:              			ADON = 1;
+  0446    1283    CLRB	0x3,5
+  0447    141F    SETB	0x1F,0
+185:              			//
+186:              			SWDTEN = 1;
+  0448    1683    SETB	0x3,5
+  0449    1408    SETB	0x8,0
+187:              			//  RB1 RB2 RA3
+188:              			IOCB = 0x00; // 0b 0000 0110
+  044A    0196    CLR	0x16
+189:              			IOCA = 0x00; // 0b 0000 1000
+  044B    1283    CLRB	0x3,5
+  044C    0189    CLR	0x9
+190:              			//
+191:              			GIE = 1;
+  044D    178B    SETB	0xB,7
+192:              
+193:              			SWDTEN = 1;
+  044E    1683    SETB	0x3,5
+  044F    1408    SETB	0x8,0
+194:              			AdcConfig();
+  0450    27E5    CALL	0x7E5
+195:              			PortInit();
+  0451    2F3A    JP	0x73A
+196:              		}
+197:              	}
+198:              	else
+199:              	{
+200:              		CntSleep = 0;
+  0452    01C5    CLR	0x45
+  0453    0008    RET
+201:              	}
+202:              }
+203:              
+204:              /***********************************************
+205:              //1ms
+206:              ************************************************/
+207:              void interrupt Timer2_Isr(void)
+208:              {
+209:              	// RB5 = 1;
+210:              	//  if(T0IF)
+211:              	//  {
+212:              	//  	//RB5 = ~RB5;
+213:              	//  	T0IF = 0;
+214:              
+215:              	// 	#if DEBUG
+216:              	// 	//TMR0 +=  256 - 5;
+217:              	// 	#endif
+218:              	// 	app_motor_pwm_out();
+219:              	// 	led_old_mode_pwm();
+220:              	// }
+221:              	if (PWMIF)
+  048F    1283    CLRB	0x3,5
+  0490    190C    SZB	0xC,2
+222:              	{
+223:              		PWMIF = 0;
+  0491    110C    CLRB	0xC,2
+224:              	}
+225:              
+226:              	if (T0IF) // 50us中断
+  0492    1D0B    SNZB	0xB,2
+  0493    2C99    JP	0x499
+227:              	{
+228:              		TMR0 = 165; // 215;//165;			//TMR0不能自动赋值
+  0494    30A5    LDIA	0xA5
+  0495    0081    LD	0x1,A
+229:              		T0IF = 0;
+  0496    110B    CLRB	0xB,2
+230:              		Mode_control(); // 牙刷电机驱动
+  0497    2346    CALL	0x346
+231:              		led_charge_pwm();
+  0498    2139    CALL	0x139
+232:              		// Cnt250us++;
+233:              		//  if (Cnt250us >= 5)
+234:              		//  {
+235:              		//  	MotorWaterDrive();
+236:              		//  	Cnt250us = 0;
+237:              		//  	Flag_250us = 1;
+238:              		//  }
+239:              	}
+240:              	if (TMR2IF)
+  0499    1283    CLRB	0x3,5
+  049A    1C8C    SNZB	0xC,1
+  049B    2CB9    JP	0x4B9
+241:              	{
+242:              		TMR2IF = 0;
+  049C    108C    CLRB	0xC,1
+243:              		Cnt10ms++;
+  049D    1683    SETB	0x3,5
+  049E    0ACD    INCR	0x4D
+  049F    1903    SZB	0x3,2
+  04A0    0ACE    INCR	0x4E
+244:              		Cnt1ms++;
+  04A1    0ACB    INCR	0x4B
+  04A2    1903    SZB	0x3,2
+  04A3    0ACC    INCR	0x4C
+245:              		MotorWaterDrive();
+  04A4    2705    CALL	0x705
+246:              		if (Cnt1ms == 4)
+  04A5    3004    LDIA	0x4
+  04A6    1683    SETB	0x3,5
+  04A7    064B    XORA	0x4B
+  04A8    044C    ORA	0x4C
+  04A9    1D03    SNZB	0x3,2
+  04AA    2CAE    JP	0x4AE
+247:              		{
+248:              			Cnt1ms = 0;
+  04AB    01CB    CLR	0x4B
+  04AC    01CC    CLR	0x4C
+249:              			process_led();
+  04AD    2232    CALL	0x232
+250:              		}
+251:              		if (Cnt10ms >= 40) // 100 * 100 = 10000us = 10ms
+  04AE    3000    LDIA	0x0
+  04AF    1683    SETB	0x3,5
+  04B0    024E    SUBA	0x4E
+  04B1    3028    LDIA	0x28
+  04B2    1903    SZB	0x3,2
+  04B3    024D    SUBA	0x4D
+  04B4    1C03    SNZB	0x3,0
+  04B5    2CB9    JP	0x4B9
+252:              		{
+253:              			Cnt10ms = 0;
+  04B6    01CD    CLR	0x4D
+  04B7    01CE    CLR	0x4E
+254:              			Flag_10ms = 1;
+  04B8    147B    SETB	0x7B,0
+255:              		}
+256:              	}
+257:              	if (RAIF)
+  04B9    1283    CLRB	0x3,5
+  04BA    1D8C    SNZB	0xC,3
+  04BB    2CBE    JP	0x4BE
+258:              	{
+259:              		RAIF = 0; //
+  04BC    118C    CLRB	0xC,3
+260:              		PORTA;	  //
+  04BD    0805    LD	A,0x5
+261:              	}
+262:              	if (RBIF)
+  04BE    1C0B    SNZB	0xB,0
+  04BF    2CC2    JP	0x4C2
+263:              	{
+264:              		RBIF = 0; //
+  04C0    100B    CLRB	0xB,0
+265:              		PORTB;	  //
+  04C1    0806    LD	A,0x6
+  04C2    087A    LD	A,0x7A
+  04C3    008A    LD	0xA,A
+  04C4    0E79    SWAPA	0x79
+  04C5    0083    LD	0x3,A
+  04C6    0EFE    SWAPR	0x7E
+  04C7    0E7E    SWAPA	0x7E
+  04C8    0009    RETI
+266:              	}
+267:              	// RB5 = 0;
+268:              }
+269:              
+270:              /*
+271:              	长按按键老化的时候没有做低电处理
+272:              	充电的时候应该只关闭电机，不关闭灯
+273:              
+274:              */
+---- Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_led.c ----------------------------------------------------------------------
+1:                #include "main.h"
+2:                
+3:                uint16_t CntLedFlash;
+4:                // #define _XTAL_FREQ 8000000UL		//如果用16M晶振则改为16000000UL
+5:                
+6:                // uint16_t PWM_Cnt;
+7:                
+8:                // bit led_lock;
+9:                
+10:               bit PWM_dir;
+11:               uint16_t PWM_Duty;
+12:               uint16_t PWM_Cnt;
+13:               
+14:               // typedef enum
+15:               // {
+16:               //     LED_STATE_OFF = 0,
+17:               //     LED_STATE_ON = !LED_STATE_OFF,
+18:               // }led_state_t;
+19:               
+20:               uint32_t led_index;
+21:               // uint8_t led_state;
+22:               
+23:               // 单独的灯
+24:               void led_pwm_ctrl(led_index_t index, uint8_t state)
+25:               {
+26:                   led_index |= index;
+27:               }
+28:               
+29:               void led_pwm_close(led_index_t index, uint8_t state)
+30:               {
+31:                   if ((led_index & LED_INDEX_1) == (index & LED_INDEX_1))
+32:                   {
+33:                       led_index &= ~LED_INDEX_1;
+34:                   }
+35:                   if ((led_index & LED_INDEX_1) == (index & LED_INDEX_1))
+36:                   {
+37:                       led_index &= ~LED_INDEX_2;
+38:                   }
+39:                   if ((led_index & LED_INDEX_1) == (index & LED_INDEX_1))
+40:                   {
+41:                       led_index &= ~LED_INDEX_3;
+42:                   }
+43:                   if (led_index == LED_INDEX_ALL)
+44:                   {
+45:                       led_index = 0;
+46:                   }
+47:               }
+48:               
+49:               // 呼吸灯
+50:               bit PWM_dir;
+51:               uint16_t PWM_Duty = 0;
+52:               uint16_t PWM_Cnt;
+53:               #define pwm_time 200
+54:               uint16_t pwm_timer;
+55:               #define PWM_WHAT 199
+56:               
+57:               bit is_charge_pwm;
+58:               void led_charge_pwm()
+59:               {
+60:                   if (WORK_STATE_CHARGING == app_work_state)
+  0139    3002    LDIA	0x2
+  013A    066D    XORA	0x6D
+  013B    1D03    SNZB	0x3,2
+  013C    29BD    JP	0x1BD
+61:                   {
+62:                       if (app_charge.Charge)
+  013D    1683    SETB	0x3,5
+  013E    1C20    SNZB	0x20,0
+  013F    0008    RET
+63:                       {
+64:                            IO_LED1 = 0;
+  0140    1283    CLRB	0x3,5
+  0141    1005    CLRB	0x5,0
+65:                           TRISA &= ~BIT(0);
+  0142    1683    SETB	0x3,5
+  0143    1005    CLRB	0x5,0
+66:                            IO_LED2 = 0;
+  0144    1283    CLRB	0x3,5
+  0145    1085    CLRB	0x5,1
+67:                           TRISA &= ~BIT(1);
+  0146    1683    SETB	0x3,5
+  0147    1085    CLRB	0x5,1
+68:                           IO_LED6 = 0;
+  0148    1283    CLRB	0x3,5
+  0149    1305    CLRB	0x5,6
+69:                           TRISA &= ~BIT(6);
+  014A    1683    SETB	0x3,5
+  014B    1305    CLRB	0x5,6
+70:                           if (app_charge.flag_charge_force_full_24hour)
+  014C    1DA0    SNZB	0x20,3
+  014D    2955    JP	0x155
+  014E    3003    LDIA	0x3
+71:                           {
+72:                               is_charge_pwm = 0;
+  014F    11FB    CLRB	0x7B,3
+73:                               set_led_state(LED_INDEX_9 | LED_INDEX_10, LED_STATE_OFF);
+  0150    01F0    CLR	0x70
+  0151    00F1    LD	0x71,A
+  0152    01F2    CLR	0x72
+  0153    259F    CALL	0x59F
+74:                           }
+  0154    0008    RET
+75:                           else if (app_charge.FullCharge || app_charge.ForceFullCharge)
+  0155    18A0    SZB	0x20,1
+  0156    2959    JP	0x159
+  0157    1D20    SNZB	0x20,2
+  0158    2966    JP	0x166
+  0159    3001    LDIA	0x1
+76:                           {
+77:                               is_charge_pwm = 0;
+  015A    11FB    CLRB	0x7B,3
+78:                               set_led_state(LED_INDEX_9, LED_STATE_ON);
+  015B    01F0    CLR	0x70
+  015C    00F1    LD	0x71,A
+  015D    01F2    CLR	0x72
+  015E    0AF2    INCR	0x72
+  015F    259F    CALL	0x59F
+79:                               set_led_state(LED_INDEX_10, LED_STATE_OFF);
+  0160    3002    LDIA	0x2
+  0161    01F0    CLR	0x70
+  0162    00F1    LD	0x71,A
+  0163    01F2    CLR	0x72
+  0164    259F    CALL	0x59F
+80:                           }
+  0165    0008    RET
+81:                           else
+82:                           {
+83:                               is_charge_pwm = 1;
+  0166    15FB    SETB	0x7B,3
+84:                               PWM_Cnt++;
+  0167    1283    CLRB	0x3,5
+  0168    0AAA    INCR	0x2A
+  0169    1903    SZB	0x3,2
+  016A    0AAB    INCR	0x2B
+85:                               //
+86:                               //  PWM_Duty = 50;
+87:                               if (PWM_Duty >= PWM_Cnt) // 100us进来一次    50 * 100
+  016B    082B    LD	A,0x2B
+  016C    022D    SUBA	0x2D
+  016D    1D03    SNZB	0x3,2
+  016E    2971    JP	0x171
+  016F    082A    LD	A,0x2A
+  0170    022C    SUBA	0x2C
+  0171    1C03    SNZB	0x3,0
+  0172    297F    JP	0x17F
+88:                               {
+89:                                   IO_LED3 = 1;
+  0173    1505    SETB	0x5,2
+90:                                   TRISA &= ~BIT(2);
+  0174    1683    SETB	0x3,5
+  0175    1105    CLRB	0x5,2
+91:                                   IO_LED5 = 0;
+  0176    1283    CLRB	0x3,5
+  0177    1205    CLRB	0x5,4
+92:                                   TRISA &= ~BIT(4);
+  0178    1683    SETB	0x3,5
+  0179    1205    CLRB	0x5,4
+93:                                   IO_LED4 = 1;
+  017A    1283    CLRB	0x3,5
+  017B    1585    SETB	0x5,3
+94:                                   TRISA &= ~BIT(3);
+  017C    1683    SETB	0x3,5
+  017D    1185    CLRB	0x5,3
+95:                               }
+  017E    2986    JP	0x186
+96:                               else
+97:                               {
+98:                                   IO_LED3 = 0;
+  017F    1105    CLRB	0x5,2
+99:                                   TRISA &= ~BIT(2);
+  0180    1683    SETB	0x3,5
+  0181    1105    CLRB	0x5,2
+100:                                  IO_LED5 = 0;
+  0182    1283    CLRB	0x3,5
+  0183    1205    CLRB	0x5,4
+101:                                  TRISA &= ~BIT(4);
+  0184    1683    SETB	0x3,5
+  0185    1205    CLRB	0x5,4
+102:                              }
+103:                              if (PWM_Cnt >= PWM_WHAT) // 每50us PWM_Cnt加一次 ，
+  0186    3000    LDIA	0x0
+  0187    1283    CLRB	0x3,5
+  0188    022B    SUBA	0x2B
+  0189    30C7    LDIA	0xC7
+  018A    1903    SZB	0x3,2
+  018B    022A    SUBA	0x2A
+  018C    1C03    SNZB	0x3,0
+  018D    2990    JP	0x190
+104:                              {
+105:                                  PWM_Cnt = 0;
+  018E    01AA    CLR	0x2A
+  018F    01AB    CLR	0x2B
+106:                              }
+107:                              pwm_timer++;
+  0190    0AA8    INCR	0x28
+  0191    1903    SZB	0x3,2
+  0192    0AA9    INCR	0x29
+108:                              if (!PWM_dir)
+  0193    1A7B    SZB	0x7B,4
+  0194    29A9    JP	0x1A9
+109:                              {
+110:                                  if (pwm_timer >= pwm_time) // 50us * 200
+  0195    3000    LDIA	0x0
+  0196    0229    SUBA	0x29
+  0197    30C8    LDIA	0xC8
+  0198    1903    SZB	0x3,2
+  0199    0228    SUBA	0x28
+  019A    1C03    SNZB	0x3,0
+  019B    0008    RET
+  019C    3000    LDIA	0x0
+111:                                  {
+112:                                      pwm_timer = 0;
+  019D    01A8    CLR	0x28
+  019E    01A9    CLR	0x29
+113:              
+114:                                      if (PWM_Duty >= PWM_WHAT)
+  019F    022D    SUBA	0x2D
+  01A0    30C7    LDIA	0xC7
+  01A1    1903    SZB	0x3,2
+  01A2    022C    SUBA	0x2C
+  01A3    1803    SZB	0x3,0
+115:                                      {
+116:                                          PWM_dir = 1;
+  01A4    167B    SETB	0x7B,4
+117:                                      }
+118:                                      PWM_Duty++;
+  01A5    0AAC    INCR	0x2C
+  01A6    1903    SZB	0x3,2
+  01A7    0AAD    INCR	0x2D
+  01A8    0008    RET
+119:                                  }
+120:                              }
+121:                              else
+122:                              {
+123:                                  if (pwm_timer >= pwm_time) // 每进来一次
+  01A9    3000    LDIA	0x0
+  01AA    0229    SUBA	0x29
+  01AB    30C8    LDIA	0xC8
+  01AC    1903    SZB	0x3,2
+  01AD    0228    SUBA	0x28
+  01AE    1C03    SNZB	0x3,0
+  01AF    0008    RET
+  01B0    3001    LDIA	0x1
+124:                                  {
+125:              
+126:                                      pwm_timer = 0;
+  01B1    01A8    CLR	0x28
+  01B2    01A9    CLR	0x29
+127:                                      // PWM_Cnt = 0;
+128:                                      // 换方向
+129:                                      PWM_Duty--;
+  01B3    02AC    SUBR	0x2C
+  01B4    3000    LDIA	0x0
+  01B5    1C03    SNZB	0x3,0
+  01B6    03AD    DECR	0x2D
+  01B7    02AD    SUBR	0x2D
+130:                                      if (!PWM_Duty)
+  01B8    082C    LD	A,0x2C
+  01B9    042D    ORA	0x2D
+  01BA    1903    SZB	0x3,2
+131:                                      {
+132:                                          PWM_dir = 0;
+  01BB    127B    CLRB	0x7B,4
+  01BC    0008    RET
+133:                                      }
+134:                                  }
+135:                              }
+136:                          }
+137:                      }
+138:                  }
+139:                  else
+140:                  {
+141:                      is_charge_pwm = 0;
+  01BD    11FB    CLRB	0x7B,3
+142:                      PWM_Cnt = 0;
+  01BE    01AA    CLR	0x2A
+  01BF    01AB    CLR	0x2B
+143:                      pwm_timer = 0;
+  01C0    01A8    CLR	0x28
+  01C1    01A9    CLR	0x29
+  01C2    0008    RET
+144:                  }
+145:              }
+146:              
+147:              void app_led_mode_set()
+148:              {
+149:                  if (work_mode.mode == WORK_MODE_ONE)
+  05FA    1283    CLRB	0x3,5
+  05FB    0B66    SZDECA	0x66
+  05FC    2E08    JP	0x608
+150:                  {
+151:                      set_led_state(LED_INDEX_2 | LED_INDEX_3, LED_STATE_OFF);
+  05FD    3006    LDIA	0x6
+  05FE    00D3    LD	0x53,A
+  05FF    01D4    CLR	0x54
+  0600    01D5    CLR	0x55
+  0601    2626    CALL	0x626
+152:                      set_led_state(LED_INDEX_1, LED_STATE_ON);
+  0602    01D3    CLR	0x53
+  0603    0AD3    INCR	0x53
+  0604    01D4    CLR	0x54
+  0605    01D5    CLR	0x55
+  0606    0AD5    INCR	0x55
+  0607    2E26    JP	0x626
+153:                  }
+154:                  else if (work_mode.mode == WORK_MODE_TWO)
+  0608    3002    LDIA	0x2
+  0609    0666    XORA	0x66
+  060A    1D03    SNZB	0x3,2
+  060B    2E17    JP	0x617
+155:                  {
+156:                      set_led_state(LED_INDEX_1 | LED_INDEX_3, LED_STATE_OFF);
+  060C    3005    LDIA	0x5
+  060D    00D3    LD	0x53,A
+  060E    01D4    CLR	0x54
+  060F    01D5    CLR	0x55
+  0610    2626    CALL	0x626
+157:                      set_led_state(LED_INDEX_2, LED_STATE_ON);
+  0611    3002    LDIA	0x2
+  0612    00D3    LD	0x53,A
+  0613    01D4    CLR	0x54
+  0614    01D5    CLR	0x55
+  0615    0AD5    INCR	0x55
+  0616    2E26    JP	0x626
+158:                  }
+159:                  else if (work_mode.mode == WORK_MODE_THREE)
+  0617    3003    LDIA	0x3
+  0618    0666    XORA	0x66
+  0619    1D03    SNZB	0x3,2
+  061A    0008    RET
+160:                  {
+161:                      set_led_state(LED_INDEX_1 | LED_INDEX_2, LED_STATE_OFF);
+  061B    3003    LDIA	0x3
+  061C    00D3    LD	0x53,A
+  061D    01D4    CLR	0x54
+  061E    01D5    CLR	0x55
+  061F    2626    CALL	0x626
+162:                      set_led_state(LED_INDEX_3, LED_STATE_ON);
+  0620    3004    LDIA	0x4
+  0621    00D3    LD	0x53,A
+  0622    01D4    CLR	0x54
+  0623    01D5    CLR	0x55
+  0624    0AD5    INCR	0x55
+  0625    2E26    JP	0x626
+163:                  }
+164:              }
+165:              
+166:              void app_led_water_mode_set()
+167:              {
+168:                  if (water_work_mode.water_mode == WATER_WORK_MODE_ONE)
+  0454    1283    CLRB	0x3,5
+  0455    0B61    SZDECA	0x61
+  0456    2C5F    JP	0x45F
+169:                  {
+170:                      set_led_state(LED_INDEX_8, LED_STATE_ON);
+  0457    3080    LDIA	0x80
+  0458    248A    CALL	0x48A
+  0459    2626    CALL	0x626
+171:                      set_led_state(LED_INDEX_7 | LED_INDEX_6 | LED_INDEX_5 | LED_INDEX_4, LED_STATE_OFF);
+  045A    3078    LDIA	0x78
+  045B    00D3    LD	0x53,A
+  045C    01D4    CLR	0x54
+  045D    01D5    CLR	0x55
+  045E    2E26    JP	0x626
+172:                  }
+173:                  else if (water_work_mode.water_mode == WATER_WORK_MODE_TWO)
+  045F    3002    LDIA	0x2
+  0460    0661    XORA	0x61
+  0461    1D03    SNZB	0x3,2
+  0462    2C6B    JP	0x46B
+174:                  {
+175:                      set_led_state(LED_INDEX_8 | LED_INDEX_7, LED_STATE_ON);
+  0463    30C0    LDIA	0xC0
+  0464    248A    CALL	0x48A
+  0465    2626    CALL	0x626
+176:                      set_led_state(LED_INDEX_6 | LED_INDEX_5 | LED_INDEX_4, LED_STATE_OFF);
+  0466    3038    LDIA	0x38
+  0467    00D3    LD	0x53,A
+  0468    01D4    CLR	0x54
+  0469    01D5    CLR	0x55
+  046A    2E26    JP	0x626
+177:                  }
+178:                  else if (water_work_mode.water_mode == WATER_WORK_MODE_THREE)
+  046B    3003    LDIA	0x3
+  046C    0661    XORA	0x61
+  046D    1D03    SNZB	0x3,2
+  046E    2C77    JP	0x477
+179:                  {
+180:                      set_led_state(LED_INDEX_8 | LED_INDEX_7 | LED_INDEX_6, LED_STATE_ON);
+  046F    30E0    LDIA	0xE0
+  0470    248A    CALL	0x48A
+  0471    2626    CALL	0x626
+181:                      set_led_state(LED_INDEX_5 | LED_INDEX_4, LED_STATE_OFF);
+  0472    3018    LDIA	0x18
+  0473    00D3    LD	0x53,A
+  0474    01D4    CLR	0x54
+  0475    01D5    CLR	0x55
+  0476    2E26    JP	0x626
+182:                  }
+183:                  else if (water_work_mode.water_mode == WATER_WORK_MODE_FOUR)
+  0477    3004    LDIA	0x4
+  0478    0661    XORA	0x61
+  0479    1D03    SNZB	0x3,2
+  047A    2C83    JP	0x483
+184:                  {
+185:                      set_led_state(LED_INDEX_8 | LED_INDEX_7 | LED_INDEX_6 | LED_INDEX_5, LED_STATE_ON);
+  047B    30F0    LDIA	0xF0
+  047C    248A    CALL	0x48A
+  047D    2626    CALL	0x626
+186:                      set_led_state(LED_INDEX_4, LED_STATE_OFF);
+  047E    3008    LDIA	0x8
+  047F    00D3    LD	0x53,A
+  0480    01D4    CLR	0x54
+  0481    01D5    CLR	0x55
+  0482    2E26    JP	0x626
+187:                  }
+188:                  else if (water_work_mode.water_mode == WATER_WORK_MODE_FIVE)
+  0483    3005    LDIA	0x5
+  0484    0661    XORA	0x61
+  0485    1D03    SNZB	0x3,2
+  0486    0008    RET
+189:                  {
+190:                      set_led_state(LED_INDEX_8 | LED_INDEX_7 | LED_INDEX_6 | LED_INDEX_5 | LED_INDEX_4, LED_STATE_ON);
+  0487    30F8    LDIA	0xF8
+  0488    248A    CALL	0x48A
+  0489    2E26    JP	0x626
+191:                  }
+192:              }
+193:              
+194:              void process_led_remind_low_power()
+195:              {
+196:                  if (app_charge.LowPower)
+  01C3    1683    SETB	0x3,5
+  01C4    0826    LD	A,0x26
+  01C5    1903    SZB	0x3,2
+  01C6    29ED    JP	0x1ED
+197:                  {
+198:                      if (app_charge.LowLed)
+  01C7    0827    LD	A,0x27
+  01C8    1903    SZB	0x3,2
+  01C9    0008    RET
+  01CA    3002    LDIA	0x2
+199:                      {
+200:                          app_charge.LowLed_cnt++;
+  01CB    0AA8    INCR	0x28
+201:                          if (app_charge.LowLed_cnt <= 1)
+  01CC    0228    SUBA	0x28
+  01CD    1803    SZB	0x3,0
+  01CE    29DA    JP	0x1DA
+202:                          {
+203:                              app_process_set_work_state(WORK_STATE_POWEROFF);
+  01CF    3000    LDIA	0x0
+  01D0    27EB    CALL	0x7EB
+204:                              app_process_set_water_state(WATER_WORK_STATE_POWEROFF);
+  01D1    3000    LDIA	0x0
+  01D2    27F0    CALL	0x7F0
+205:                              app_charge.low_led_blink_cnt = 5;
+  01D3    3005    LDIA	0x5
+  01D4    1683    SETB	0x3,5
+  01D5    00B1    LD	0x31,A
+206:                              set_led_dirct_state(LED_INDEX_NULL);
+  01D6    1283    CLRB	0x3,5
+  01D7    01D3    CLR	0x53
+  01D8    01D4    CLR	0x54
+  01D9    2FCA    JP	0x7CA
+207:                          }
+208:                          else if (app_charge.LowLed_cnt < 25)
+  01DA    3019    LDIA	0x19
+  01DB    0228    SUBA	0x28
+  01DC    1803    SZB	0x3,0
+  01DD    29E1    JP	0x1E1
+209:                          {
+210:                              set_led_state(LED_INDEX_10, LED_STATE_ON);
+  01DE    222C    CALL	0x22C
+  01DF    0AD5    INCR	0x55
+  01E0    2E26    JP	0x626
+211:                          }
+212:                          else if (app_charge.LowLed_cnt < 50)
+  01E1    3032    LDIA	0x32
+  01E2    0228    SUBA	0x28
+  01E3    1803    SZB	0x3,0
+  01E4    29E7    JP	0x1E7
+213:                          {
+214:                              set_led_state(LED_INDEX_10, LED_STATE_OFF);
+  01E5    222C    CALL	0x22C
+  01E6    2E26    JP	0x626
+215:                          }
+216:                          else
+217:                          {
+218:                              app_charge.low_led_blink_cnt--;
+  01E7    03B1    DECR	0x31
+219:                              if (!app_charge.low_led_blink_cnt)
+  01E8    1903    SZB	0x3,2
+220:                              {
+221:                                  app_charge.LowLed = FLASE;
+  01E9    01A7    CLR	0x27
+222:                              }
+223:                              app_charge.LowLed_cnt = 2;
+  01EA    3002    LDIA	0x2
+  01EB    00A8    LD	0x28,A
+  01EC    0008    RET
+224:                          }
+225:                      }
+226:                  }
+227:                  else if (app_charge.Remind)
+  01ED    1E20    SNZB	0x20,4
+  01EE    2A28    JP	0x228
+228:                  {
+229:                      if (app_work_state == WORK_STATE_WORKING || water_work_state == WATER_WORK_STATE_WORKING || app_charge.flag_remind_delay_10s)
+  01EF    1283    CLRB	0x3,5
+  01F0    036D    DECA	0x6D
+  01F1    1903    SZB	0x3,2
+  01F2    29FA    JP	0x1FA
+  01F3    036C    DECA	0x6C
+  01F4    1903    SZB	0x3,2
+  01F5    29FA    JP	0x1FA
+  01F6    1683    SETB	0x3,5
+  01F7    0822    LD	A,0x22
+  01F8    1903    SZB	0x3,2
+  01F9    0008    RET
+230:                      {
+231:                          CntLedFlash++;
+  01FA    1283    CLRB	0x3,5
+  01FB    0AAE    INCR	0x2E
+  01FC    1903    SZB	0x3,2
+  01FD    0AAF    INCR	0x2F
+232:                          if (CntLedFlash <= MS(500))
+  01FE    3000    LDIA	0x0
+  01FF    022F    SUBA	0x2F
+  0200    3033    LDIA	0x33
+  0201    1903    SZB	0x3,2
+  0202    022E    SUBA	0x2E
+  0203    1C03    SNZB	0x3,0
+  0204    29DE    JP	0x1DE
+233:                          {
+234:                              set_led_state(LED_INDEX_10, LED_STATE_ON);
+235:                          }
+236:                          else if (CntLedFlash <= MS(1000))
+  0205    3000    LDIA	0x0
+  0206    022F    SUBA	0x2F
+  0207    3065    LDIA	0x65
+  0208    1903    SZB	0x3,2
+  0209    022E    SUBA	0x2E
+  020A    1C03    SNZB	0x3,0
+  020B    29E5    JP	0x1E5
+237:                          {
+238:                              set_led_state(LED_INDEX_10, LED_STATE_OFF);
+239:                          }
+240:                          else
+241:                          {
+242:                              CntLedFlash = 0;
+  020C    01AE    CLR	0x2E
+  020D    01AF    CLR	0x2F
+243:                              if (app_charge.flag_remind_delay_10s)
+  020E    1683    SETB	0x3,5
+  020F    0822    LD	A,0x22
+  0210    1903    SZB	0x3,2
+  0211    0008    RET
+244:                              {
+245:                                  //低电关机亮灯10S
+246:                                  if (++app_charge.remind_delay_10s_timer >= 10)
+  0212    0AA3    INCR	0x23
+  0213    1903    SZB	0x3,2
+  0214    0AA4    INCR	0x24
+  0215    3000    LDIA	0x0
+  0216    0224    SUBA	0x24
+  0217    300A    LDIA	0xA
+  0218    1903    SZB	0x3,2
+  0219    0223    SUBA	0x23
+  021A    1C03    SNZB	0x3,0
+  021B    0008    RET
+  021C    3002    LDIA	0x2
+247:                                  {
+248:                                      app_charge.flag_remind_delay_10s = 0;
+  021D    01A2    CLR	0x22
+249:                                      // 关机
+250:                                      set_led_state(LED_INDEX_10, LED_STATE_OFF);
+  021E    2134    CALL	0x134
+  021F    2626    CALL	0x626
+251:                                      if (water_work_state != WATER_WORK_STATE_MODE_LED)
+  0220    3003    LDIA	0x3
+  0221    066C    XORA	0x6C
+  0222    1903    SZB	0x3,2
+  0223    0008    RET
+252:                                      {
+253:                                           app_process_set_work_state(WORK_STATE_POWEROFF);
+  0224    3000    LDIA	0x0
+  0225    27EB    CALL	0x7EB
+254:                                          app_process_set_water_state(WATER_WORK_STATE_POWEROFF);
+  0226    3000    LDIA	0x0
+  0227    2FF0    JP	0x7F0
+255:                                      }
+256:                                      
+257:                                     
+258:                                  }
+259:                              }
+260:                          }
+261:                      }
+262:                  }
+263:                  else
+264:                  {
+265:                      CntLedFlash = 0;
+  0228    1283    CLRB	0x3,5
+  0229    01AE    CLR	0x2E
+  022A    01AF    CLR	0x2F
+  022B    0008    RET
+266:                  }
+267:              }
+268:              
+269:              void set_led_state(led_index_t index, led_state_t state)
+270:              {
+271:                  if (LED_STATE_ON == state)
+  059F    0B72    SZDECA	0x72
+  05A0    2DB1    JP	0x5B1
+  0626    0B55    SZDECA	0x55
+  0627    2E37    JP	0x637
+272:                  {
+273:                      led_index |= index;
+  05A1    0870    LD	A,0x70
+  05A2    00F3    LD	0x73,A
+  05A3    0871    LD	A,0x71
+  05A4    00F4    LD	0x74,A
+  05A5    01F5    CLR	0x75
+  05A6    01F6    CLR	0x76
+  05A7    0873    LD	A,0x73
+  05A8    1283    CLRB	0x3,5
+  05A9    04A0    ORR	0x20
+  05AA    0874    LD	A,0x74
+  05AB    04A1    ORR	0x21
+  05AC    0875    LD	A,0x75
+  05AD    04A2    ORR	0x22
+  05AE    0876    LD	A,0x76
+  05AF    04A3    ORR	0x23
+  0628    0853    LD	A,0x53
+  0629    00D6    LD	0x56,A
+  062A    0854    LD	A,0x54
+  062B    00D7    LD	0x57,A
+  062C    01D8    CLR	0x58
+  062D    01D9    CLR	0x59
+  062E    0856    LD	A,0x56
+  062F    04A0    ORR	0x20
+  0630    0857    LD	A,0x57
+  0631    04A1    ORR	0x21
+  0632    0858    LD	A,0x58
+  0633    04A2    ORR	0x22
+  0634    0859    LD	A,0x59
+  0635    04A3    ORR	0x23
+274:                  }
+  05B0    0008    RET
+  0636    0008    RET
+275:                  else if (LED_STATE_OFF == state)
+  05B1    0872    LD	A,0x72
+  05B2    1D03    SNZB	0x3,2
+  05B3    0008    RET
+  0637    0855    LD	A,0x55
+  0638    1D03    SNZB	0x3,2
+  0639    0008    RET
+276:                  {
+277:                      led_index &= ~index;
+  05B4    0871    LD	A,0x71
+  05B5    00F4    LD	0x74,A
+  05B6    0870    LD	A,0x70
+  05B7    00F3    LD	0x73,A
+  05B8    09F3    COMR	0x73
+  05B9    09F4    COMR	0x74
+  05BA    0873    LD	A,0x73
+  05BB    00F5    LD	0x75,A
+  05BC    0874    LD	A,0x74
+  05BD    00F6    LD	0x76,A
+  05BE    3000    LDIA	0x0
+  05BF    1BF6    SZB	0x76,7
+  05C0    30FF    LDIA	0xFF
+  05C1    00F7    LD	0x77,A
+  05C2    00F8    LD	0x78,A
+  05C3    0875    LD	A,0x75
+  05C4    1283    CLRB	0x3,5
+  05C5    05A0    ANDR	0x20
+  05C6    0876    LD	A,0x76
+  05C7    05A1    ANDR	0x21
+  05C8    0877    LD	A,0x77
+  05C9    05A2    ANDR	0x22
+  05CA    0878    LD	A,0x78
+  05CB    05A3    ANDR	0x23
+  05CC    0008    RET
+  063A    0854    LD	A,0x54
+  063B    00D7    LD	0x57,A
+  063C    0853    LD	A,0x53
+  063D    00D6    LD	0x56,A
+  063E    09D6    COMR	0x56
+  063F    09D7    COMR	0x57
+  0640    0856    LD	A,0x56
+  0641    00D8    LD	0x58,A
+  0642    0857    LD	A,0x57
+  0643    00D9    LD	0x59,A
+  0644    3000    LDIA	0x0
+  0645    1BD9    SZB	0x59,7
+  0646    30FF    LDIA	0xFF
+  0647    00DA    LD	0x5A,A
+  0648    00DB    LD	0x5B,A
+  0649    0858    LD	A,0x58
+  064A    05A0    ANDR	0x20
+  064B    0859    LD	A,0x59
+  064C    05A1    ANDR	0x21
+  064D    085A    LD	A,0x5A
+  064E    05A2    ANDR	0x22
+  064F    085B    LD	A,0x5B
+  0650    05A3    ANDR	0x23
+  0651    0008    RET
+278:                  }
+279:              }
+280:              
+281:              void set_led_dirct_state(led_index_t index)
+282:              {
+283:                  led_index = index;
+  07CA    0853    LD	A,0x53
+  07CB    00A0    LD	0x20,A
+  07CC    0854    LD	A,0x54
+  07CD    00A1    LD	0x21,A
+  07CE    01A2    CLR	0x22
+  07CF    01A3    CLR	0x23
+  07D0    0008    RET
+284:              }
+285:              static volatile u8 step = 0;
+286:              void process_led(void)
+287:              {
+288:                 if (is_charge_pwm)
+  0232    19FB    SZB	0x7B,3
+  0233    0008    RET
+289:                  {
+290:                      return;
+291:                  }
+292:                  TRISA = 0b01011111;
+  0234    305F    LDIA	0x5F
+  0235    0085    LD	0x5,A
+293:                  // PORTA = 0b00000000;
+294:                  if (step == 0)
+  0236    1283    CLRB	0x3,5
+  0237    0846    LD	A,0x46
+  0238    1D03    SNZB	0x3,2
+  0239    2A5B    JP	0x25B
+295:                  {
+296:                      if (led_index & LED_INDEX_1)//GREEN1
+  023A    1C20    SNZB	0x20,0
+  023B    2A3F    JP	0x23F
+297:                      {
+298:                          IO_LED2 = 0;
+  023C    1085    CLRB	0x5,1
+299:                          TRISA &= ~BIT(1);
+  023D    1683    SETB	0x3,5
+  023E    1085    CLRB	0x5,1
+300:                      }
+301:                      if (led_index & LED_INDEX_2)//GREEN2
+  023F    1283    CLRB	0x3,5
+  0240    1CA0    SNZB	0x20,1
+  0241    2A45    JP	0x245
+302:                      {
+303:                          IO_LED3 = 0;
+  0242    1105    CLRB	0x5,2
+304:                          TRISA &= ~BIT(2);
+  0243    1683    SETB	0x3,5
+  0244    1105    CLRB	0x5,2
+305:                      }
+306:                      if (led_index & LED_INDEX_3)//GREEN3
+  0245    1283    CLRB	0x3,5
+  0246    1D20    SNZB	0x20,2
+  0247    2A4B    JP	0x24B
+307:                      {
+308:                          IO_LED4 = 0;
+  0248    1185    CLRB	0x5,3
+309:                          TRISA &= ~BIT(3);
+  0249    1683    SETB	0x3,5
+  024A    1185    CLRB	0x5,3
+310:                      }
+311:                      if (led_index & LED_INDEX_4)//BLUE4
+  024B    1283    CLRB	0x3,5
+  024C    1DA0    SNZB	0x20,3
+  024D    2A51    JP	0x251
+312:                      {
+313:                          IO_LED5 = 0;
+  024E    1205    CLRB	0x5,4
+314:                          TRISA &= ~BIT(4);
+  024F    1683    SETB	0x3,5
+  0250    1205    CLRB	0x5,4
+315:                      }
+316:                      if (led_index & LED_INDEX_5)//BLUE5
+  0251    1283    CLRB	0x3,5
+  0252    1E20    SNZB	0x20,4
+  0253    2A57    JP	0x257
+317:                      {
+318:                          IO_LED6 = 0;
+  0254    1305    CLRB	0x5,6
+319:                          TRISA &= ~BIT(6);
+  0255    1683    SETB	0x3,5
+  0256    1305    CLRB	0x5,6
+320:                      }
+321:                      IO_LED1 = 1;
+  0257    1283    CLRB	0x3,5
+  0258    1405    SETB	0x5,0
+322:                      TRISA &= ~BIT(0);
+  0259    1683    SETB	0x3,5
+  025A    1005    CLRB	0x5,0
+323:                  }
+324:                  if (step == 1)
+  025B    1283    CLRB	0x3,5
+  025C    0B46    SZDECA	0x46
+  025D    2A73    JP	0x273
+325:                  {
+326:                      if (led_index & LED_INDEX_6)//BLUE6
+  025E    1EA0    SNZB	0x20,5
+  025F    2A63    JP	0x263
+327:                      {
+328:                          IO_LED4 = 0;
+  0260    1185    CLRB	0x5,3
+329:                          TRISA &= ~BIT(3);
+  0261    1683    SETB	0x3,5
+  0262    1185    CLRB	0x5,3
+330:                      }
+331:                      if (led_index & LED_INDEX_7)//BLUE7
+  0263    1283    CLRB	0x3,5
+  0264    1F20    SNZB	0x20,6
+  0265    2A69    JP	0x269
+332:                      {
+333:                          IO_LED6 = 0;
+  0266    1305    CLRB	0x5,6
+334:                          TRISA &= ~BIT(6);
+  0267    1683    SETB	0x3,5
+  0268    1305    CLRB	0x5,6
+335:                      }
+336:                      if (led_index & LED_INDEX_8)//BLUE8
+  0269    1283    CLRB	0x3,5
+  026A    1FA0    SNZB	0x20,7
+  026B    2A6F    JP	0x26F
+337:                      {
+338:                          IO_LED5 = 0;
+  026C    1205    CLRB	0x5,4
+339:                          TRISA &= ~BIT(4);
+  026D    1683    SETB	0x3,5
+  026E    1205    CLRB	0x5,4
+340:                      }
+341:                      IO_LED2 = 1;
+  026F    1283    CLRB	0x3,5
+  0270    1485    SETB	0x5,1
+342:                      TRISA &= ~BIT(1);
+  0271    1683    SETB	0x3,5
+  0272    1085    CLRB	0x5,1
+343:                  }
+344:                  if (step == 2)
+  0273    3002    LDIA	0x2
+  0274    1283    CLRB	0x3,5
+  0275    0646    XORA	0x46
+  0276    1D03    SNZB	0x3,2
+  0277    2A7E    JP	0x27E
+345:                  {
+346:                      if (led_index & LED_INDEX_9)//GREEN
+  0278    1C21    SNZB	0x21,0
+  0279    2A7D    JP	0x27D
+347:                      {
+348:                          IO_LED4 = 0;
+  027A    1185    CLRB	0x5,3
+349:                          TRISA &= ~BIT(3);
+  027B    1683    SETB	0x3,5
+  027C    1185    CLRB	0x5,3
+350:                      }
+351:                      IO_LED3 = 1;
+352:                      TRISA &= ~BIT(2);
+  027D    2290    CALL	0x290
+353:                  }
+354:                  if (step == 3)
+  027E    3003    LDIA	0x3
+  027F    1283    CLRB	0x3,5
+  0280    0646    XORA	0x46
+  0281    1D03    SNZB	0x3,2
+  0282    2A89    JP	0x289
+355:                  {
+356:                      if (led_index & LED_INDEX_10)//RED
+  0283    1CA1    SNZB	0x21,1
+  0284    2A88    JP	0x288
+357:                      {
+358:                          IO_LED5 = 0;
+  0285    1205    CLRB	0x5,4
+359:                          TRISA &= ~BIT(4);
+  0286    1683    SETB	0x3,5
+  0287    1205    CLRB	0x5,4
+360:                      }
+361:                      IO_LED3 = 1;
+362:                      TRISA &= ~BIT(2);
+  0288    2290    CALL	0x290
+363:                  }
+364:                  step++;
+  0289    1283    CLRB	0x3,5
+  028A    0AC6    INCR	0x46
+365:                  if (step > 3)
+  028B    3004    LDIA	0x4
+  028C    0246    SUBA	0x46
+  028D    1803    SZB	0x3,0
+366:                  {
+367:                      step = 0;
+  028E    01C6    CLR	0x46
+  028F    0008    RET
+368:                  }
+369:              }
+---- Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_water_process.c ----------------------------------------------------------------------
+1:                 #include "main.h"
+2:                
+3:                uint8_t water_work_step;
+4:                uint8_t CntWaterDrive;
+5:                uint8_t MotorWaterDuty;
+6:                
+7:                volatile water_work_state_t water_work_state =  WATER_WORK_STATE_POWEROFF;
+8:                app_process_water_mode_t water_work_mode = 
+9:                {
+10:                   WATER_WORK_MODE_THREE,0,0,0
+11:               };
+12:               app_timer_t app_water_timer = 
+13:               {
+14:               	0
+15:               };
+16:               
+17:               void app_process_set_water_state(water_work_state_t states)
+18:               {
+19:                   water_work_state = states;
+  07F2    00EC    LD	0x6C,A
+20:                   water_work_step = 0;
+  07F3    01BE    CLR	0x3E
+  07F4    0008    RET
+21:               }
+22:               
+23:               void water_motor()
+24:               {
+25:                   if (water_work_mode.water_mode == WATER_WORK_MODE_ONE)
+  069A    0B61    SZDECA	0x61
+  069B    2E9E    JP	0x69E
+26:                   {
+27:                       // MotorWaterDuty=41;
+28:                       MotorWaterDuty=36;
+  069C    3024    LDIA	0x24
+  069D    00BC    LD	0x3C,A
+29:                   }
+30:                   if (water_work_mode.water_mode == WATER_WORK_MODE_TWO)
+  069E    3002    LDIA	0x2
+  069F    0661    XORA	0x61
+  06A0    1D03    SNZB	0x3,2
+  06A1    2EA4    JP	0x6A4
+31:                   {
+32:                       // MotorWaterDuty=56;
+33:                       MotorWaterDuty=51;
+  06A2    3033    LDIA	0x33
+  06A3    00BC    LD	0x3C,A
+34:                   }
+35:                   if (water_work_mode.water_mode == WATER_WORK_MODE_THREE)
+  06A4    3003    LDIA	0x3
+  06A5    0661    XORA	0x61
+  06A6    1D03    SNZB	0x3,2
+  06A7    2EAA    JP	0x6AA
+36:                   {
+37:                       // MotorWaterDuty=71;
+38:                       MotorWaterDuty=66;
+  06A8    3042    LDIA	0x42
+  06A9    00BC    LD	0x3C,A
+39:                   }
+40:                   if (water_work_mode.water_mode == WATER_WORK_MODE_FOUR)
+  06AA    3004    LDIA	0x4
+  06AB    0661    XORA	0x61
+  06AC    1D03    SNZB	0x3,2
+  06AD    2EB0    JP	0x6B0
+41:                   {
+42:                       // MotorWaterDuty=86;
+43:                       MotorWaterDuty=81;
+  06AE    3051    LDIA	0x51
+  06AF    00BC    LD	0x3C,A
+44:                   }
+45:                   if (water_work_mode.water_mode == WATER_WORK_MODE_FIVE)
+  06B0    3005    LDIA	0x5
+  06B1    0661    XORA	0x61
+  06B2    1D03    SNZB	0x3,2
+  06B3    2EB6    JP	0x6B6
+46:                   {
+47:                       // MotorWaterDuty=101;
+48:                       MotorWaterDuty=96;
+  06B4    3060    LDIA	0x60
+  06B5    00BC    LD	0x3C,A
+49:                   }
+50:                   water_work_mode.water_mode_out_put = water_work_mode.water_mode;
+  06B6    0861    LD	A,0x61
+  06B7    00E2    LD	0x62,A
+  06B8    0008    RET
+51:               }
+52:               
+53:               // void app_process_set_water_mode_init()
+54:               // {
+55:               //     app_led_water_mode_set();
+56:               //     water_motor();
+57:               // }
+58:               
+59:               void app_process_set_water_mode_next(void)
+60:               {
+61:                   water_work_mode.water_mode++;
+  07C3    0AE1    INCR	0x61
+62:                   if (water_work_mode.water_mode > WATER_WORK_MODE_FIVE)
+  07C4    0261    SUBA	0x61
+  07C5    1C03    SNZB	0x3,0
+  07C6    0008    RET
+63:                   {
+64:                       water_work_mode.water_mode = WATER_WORK_MODE_ONE;
+  07C7    01E1    CLR	0x61
+  07C8    0AE1    INCR	0x61
+  07C9    0008    RET
+65:                   }
+66:                   // app_led_water_mode_set();
+67:                   // if (water_work_state == WATER_WORK_STATE_WORKING)
+68:                   // {
+69:                   //     water_motor();
+70:                   // }
+71:               }
+72:               
+73:               void MotorWaterDrive()
+74:               {
+75:                   if(water_work_mode.water_mode_out_put == WATER_WORK_MODE_IDEL)
+  0705    1283    CLRB	0x3,5
+  0706    0862    LD	A,0x62
+  0707    1D03    SNZB	0x3,2
+  0708    2F0B    JP	0x70B
+76:                   {
+77:                       MotorWaterOff;
+  0709    1285    CLRB	0x5,5
+78:                       return;
+  070A    0008    RET
+79:                   }
+80:                   CntWaterDrive++;
+  070B    0ABD    INCR	0x3D
+81:                   if(CntWaterDrive==1)
+  070C    0B3D    SZDECA	0x3D
+  070D    2F0F    JP	0x70F
+82:                   {
+83:                   MotorWaterOn;
+  070E    1685    SETB	0x5,5
+84:                   }
+85:                   if(CntWaterDrive==MotorWaterDuty)
+  070F    083D    LD	A,0x3D
+  0710    063C    XORA	0x3C
+  0711    1903    SZB	0x3,2
+86:                   {
+87:                   MotorWaterOff;
+  0712    1285    CLRB	0x5,5
+88:                   }	 
+89:                   if(CntWaterDrive>99)
+  0713    3064    LDIA	0x64
+  0714    023D    SUBA	0x3D
+  0715    1803    SZB	0x3,0
+90:                   {
+91:                   CntWaterDrive=0;
+  0716    01BD    CLR	0x3D
+  0717    0008    RET
+92:                   }		
+93:               }
+94:               
+95:               void app_process_water_working()
+96:               {
+97:                    if (!water_work_step)
+  0652    083E    LD	A,0x3E
+  0653    1D03    SNZB	0x3,2
+  0654    2E57    JP	0x657
+98:                   {
+99:                       water_work_step++;
+  0655    0ABE    INCR	0x3E
+100:                  }
+  0656    0008    RET
+101:                  else
+102:                  {
+103:                      water_work_mode.water_mode_count++;
+  0657    0AE3    INCR	0x63
+  0658    1903    SZB	0x3,2
+  0659    0AE4    INCR	0x64
+104:                      if (water_work_mode.water_mode_count == SECOND(30))
+  065A    30B8    LDIA	0xB8
+  065B    0663    XORA	0x63
+  065C    300B    LDIA	0xB
+  065D    1903    SZB	0x3,2
+  065E    0664    XORA	0x64
+  065F    1D03    SNZB	0x3,2
+  0660    2E63    JP	0x663
+105:                      {
+106:                          water_work_mode.water_mode_out_put = WORK_MODE_IDEL;
+  0661    01E2    CLR	0x62
+107:                      }
+  0662    0008    RET
+108:                      else if (water_work_mode.water_mode_count >= SECOND(30) + MS(200))
+  0663    300B    LDIA	0xB
+  0664    0264    SUBA	0x64
+  0665    30CC    LDIA	0xCC
+  0666    1903    SZB	0x3,2
+  0667    0263    SUBA	0x63
+  0668    1C03    SNZB	0x3,0
+  0669    0008    RET
+  066A    3004    LDIA	0x4
+109:                      {
+110:                          water_work_mode.water_mode_count = 0;
+  066B    01E3    CLR	0x63
+  066C    01E4    CLR	0x64
+111:              			water_work_mode.times++;
+  066D    0AE5    INCR	0x65
+112:              			if(water_work_mode.times >=  4)   
+  066E    0265    SUBA	0x65
+  066F    1C03    SNZB	0x3,0
+  0670    2E78    JP	0x678
+113:              			{
+114:              				water_work_mode.times = 0;
+  0671    01E5    CLR	0x65
+115:                              if (app_charge.Remind)
+  0672    1683    SETB	0x3,5
+  0673    1E20    SNZB	0x20,4
+  0674    2E76    JP	0x676
+116:                              {
+117:                                  app_charge.flag_remind_delay_10s = 1;
+118:              				    app_charge.remind_delay_10s_timer = 0;
+  0675    259A    CALL	0x59A
+119:                              }
+120:                                  //关机
+121:                              app_process_set_water_state(WATER_WORK_STATE_POWEROFF);
+  0676    3000    LDIA	0x0
+  0677    2FF0    JP	0x7F0
+122:                          }
+123:                          else
+124:                          {
+125:                              water_work_mode.water_mode_out_put = water_work_mode.water_mode;
+  0678    0861    LD	A,0x61
+  0679    00E2    LD	0x62,A
+  067A    0008    RET
+126:                          }
+127:                      }
+128:                  }
+129:              }
+130:              
+131:              void water_turn_off()
+132:              {
+133:                  water_work_mode.water_mode_count = 0;
+  07A9    01E3    CLR	0x63
+  07AA    01E4    CLR	0x64
+134:                  water_work_mode.times = 0;
+  07AB    01E5    CLR	0x65
+135:                  //关电机
+136:                  water_work_mode.water_mode_out_put = WATER_WORK_MODE_IDEL;
+  07AC    01E2    CLR	0x62
+137:                  //关灯
+138:                  set_led_state(LED_INDEX_8 | LED_INDEX_7 | LED_INDEX_6 | LED_INDEX_5 | LED_INDEX_4, LED_STATE_OFF);
+  07AD    00D3    LD	0x53,A
+  07AE    01D4    CLR	0x54
+  07AF    01D5    CLR	0x55
+  07B0    2E26    JP	0x626
+139:              }
+140:              
+141:              void app_process_water_workoff()
+142:              {
+143:                  water_turn_off();
+  07F9    2FA8    JP	0x7A8
+144:              }
+145:              
+146:              static uint16_t water_mode_led_cnt;
+147:              void app_process_water_mdoe_led()
+148:              {
+149:                   if (!water_work_step)
+  06B9    083E    LD	A,0x3E
+  06BA    1D03    SNZB	0x3,2
+  06BB    2EC2    JP	0x6C2
+150:                  {
+151:                      water_mode_led_cnt = SECOND(10);
+  06BC    30E8    LDIA	0xE8
+  06BD    00A4    LD	0x24,A
+  06BE    3003    LDIA	0x3
+  06BF    00A5    LD	0x25,A
+152:                      water_work_step++;
+  06C0    0ABE    INCR	0x3E
+153:                  }
+  06C1    0008    RET
+154:                  else
+155:                  {
+156:                      water_work_mode.water_mode_count++;
+  06C2    0AE3    INCR	0x63
+  06C3    1903    SZB	0x3,2
+  06C4    0AE4    INCR	0x64
+157:                      if (water_mode_led_cnt)
+  06C5    0824    LD	A,0x24
+  06C6    0425    ORA	0x25
+  06C7    1903    SZB	0x3,2
+  06C8    0008    RET
+158:                      {
+159:                          water_mode_led_cnt--;
+  06C9    3001    LDIA	0x1
+  06CA    02A4    SUBR	0x24
+  06CB    3000    LDIA	0x0
+  06CC    1C03    SNZB	0x3,0
+  06CD    03A5    DECR	0x25
+  06CE    02A5    SUBR	0x25
+160:                          if (!water_mode_led_cnt)
+  06CF    0824    LD	A,0x24
+  06D0    0425    ORA	0x25
+  06D1    1D03    SNZB	0x3,2
+  06D2    0008    RET
+161:                          {
+162:                              //关机
+163:                              app_process_set_water_state(WATER_WORK_STATE_POWEROFF);
+  06D3    3000    LDIA	0x0
+  06D4    2FF0    JP	0x7F0
+164:                          }
+165:                      }
+166:                  }
+167:              }
+168:              
+169:              void app_water_process_work()
+170:              {
+171:                  switch (water_work_state)
+  075B    086C    LD	A,0x6C
+  075C    0084    LD	0x4,A
+  075D    3004    LDIA	0x4
+  075E    0204    SUBA	0x4
+  075F    1803    SZB	0x3,0
+  0760    0008    RET
+  0761    3007    LDIA	0x7
+  0762    008A    LD	0xA,A
+  0763    30F5    LDIA	0xF5
+  0764    0704    ADDA	0x4
+  0765    0082    LD	0x2,A
+  0766    0008    RET
+172:                  {
+173:                  case WATER_WORK_STATE_WORKING:
+174:                      app_process_water_working();
+  0767    2E52    JP	0x652
+175:                      break;
+176:                  case WATER_WORK_STATE_POWEROFF:
+177:                      app_process_water_workoff();
+  0768    2FA8    JP	0x7A8
+178:                      break;
+179:                  case WATER_WORK_STATE_MODE_LED:
+180:                      app_process_water_mdoe_led();
+  0769    2EB9    JP	0x6B9
+181:                      break;
+182:                  
+183:                  default:
+184:                      break;
+185:                  }
+186:              }
+187:              
+188:              
+189:              
+190:              
+191:              
+192:              
+193:              
+194:              
+195:              
+196:              
+197:              
+198:              
+199:              
+200:              
+201:              
+202:              
+203:              
+204:              
+205:              
+206:              
+207:              
+208:              
+209:              
+210:              
+211:              
+---- Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_process.c ----------------------------------------------------------------------
+1:                 #include "main.h"
+2:                
+3:                uint8_t work_step;
+4:                volatile work_state_t app_work_state =  WORK_STATE_POWEROFF;
+5:                uint16_t bat_remind_timer;	
+6:                
+7:                app_process_mode_t work_mode = 
+8:                {
+9:                    WORK_MODE_TWO,0,0,0
+10:                   // WORK_MODE_ONE,
+11:                   // WORK_MODE_ONE
+12:               };
+13:               
+14:               //uint8_t power_off_led_timer;
+15:               //uint8_t blink_cnt;
+16:               
+17:               
+18:               
+19:               bit flag_old_mode;
+20:               
+21:               app_timer_t app_timer = 
+22:               {
+23:               	0
+24:               };
+25:               
+26:               void turn_off()//这是牙刷的
+27:               {
+28:               	work_mode.work_mode_count = 0;
+29:               	work_mode.times = 0;
+30:                   work_mode.mode_out_put = WORK_MODE_IDEL;
+31:               	set_led_state(LED_INDEX_1 | LED_INDEX_2 | LED_INDEX_3, LED_STATE_OFF);
+32:               }
+33:               
+34:               void app_process_set_work_state(work_state_t states)
+  07EB    1283    CLRB	0x3,5
+  07EC    00D3    LD	0x53,A
+35:               {
+36:                   app_work_state = states;
+  07ED    00ED    LD	0x6D,A
+37:                   work_step = 0;
+  07EE    01C4    CLR	0x44
+  07EF    0008    RET
+38:               }
+39:               
+40:               u16 times;
+41:               void app_process_working()
+42:               {
+43:                   if (!work_step)
+  056F    0844    LD	A,0x44
+  0570    1D03    SNZB	0x3,2
+  0571    2D74    JP	0x574
+44:                   {
+45:                       //turn_off();
+46:                       work_step++;
+  0572    0AC4    INCR	0x44
+47:                   }
+  0573    0008    RET
+48:                   else
+49:                   {
+50:                       work_chang_timing();//5s      
+  0574    26EF    CALL	0x6EF
+51:                       work_mode.work_mode_count++;
+  0575    1283    CLRB	0x3,5
+  0576    0AE8    INCR	0x68
+  0577    1903    SZB	0x3,2
+  0578    0AE9    INCR	0x69
+52:                       if (work_mode.work_mode_count == SECOND(30))
+  0579    30B8    LDIA	0xB8
+  057A    0668    XORA	0x68
+  057B    300B    LDIA	0xB
+  057C    1903    SZB	0x3,2
+  057D    0669    XORA	0x69
+  057E    1D03    SNZB	0x3,2
+  057F    2D82    JP	0x582
+53:                       {
+54:                           work_mode.mode_out_put = WORK_MODE_IDEL;
+  0580    01E7    CLR	0x67
+55:                       }
+  0581    0008    RET
+56:                       else if (work_mode.work_mode_count >= SECOND(30) + MS(200))
+  0582    300B    LDIA	0xB
+  0583    0269    SUBA	0x69
+  0584    30CC    LDIA	0xCC
+  0585    1903    SZB	0x3,2
+  0586    0268    SUBA	0x68
+  0587    1C03    SNZB	0x3,0
+  0588    0008    RET
+  0589    3004    LDIA	0x4
+57:                       {
+58:                           work_mode.work_mode_count = 0;
+  058A    01E8    CLR	0x68
+  058B    01E9    CLR	0x69
+59:               			work_mode.times++;
+  058C    0AEA    INCR	0x6A
+60:               			if(work_mode.times >=  4)   
+  058D    026A    SUBA	0x6A
+  058E    1C03    SNZB	0x3,0
+  058F    2D97    JP	0x597
+61:               			{
+62:               				work_mode.times = 0;
+  0590    01EA    CLR	0x6A
+63:                               if (app_charge.Remind)
+  0591    1683    SETB	0x3,5
+  0592    1E20    SNZB	0x20,4
+  0593    2D95    JP	0x595
+64:                               {
+65:                                   app_charge.flag_remind_delay_10s = 1;
+66:               				    app_charge.remind_delay_10s_timer = 0;
+  0594    259A    CALL	0x59A
+67:                               }
+68:                               app_process_set_work_state(WORK_STATE_POWEROFF);
+  0595    3000    LDIA	0x0
+  0596    2FEB    JP	0x7EB
+69:                           }
+70:                           else
+71:                           {
+72:                               work_mode.mode_out_put = work_mode.mode;
+  0597    0866    LD	A,0x66
+  0598    00E7    LD	0x67,A
+  0599    0008    RET
+73:                           }
+74:                       }
+75:                   }
+76:               }
+77:               
+78:               void app_process_power_off()
+  07B1    3007    LDIA	0x7
+79:               {
+80:                   work_mode.work_mode_count = 0;
+  07B2    01E8    CLR	0x68
+  07B3    01E9    CLR	0x69
+81:               	work_mode.times = 0;
+  07B4    01EA    CLR	0x6A
+82:                   work_mode.mode_out_put = WORK_MODE_IDEL;
+  07B5    01E7    CLR	0x67
+83:               	set_led_state(LED_INDEX_1 | LED_INDEX_2 | LED_INDEX_3, LED_STATE_OFF);
+  07B6    00D3    LD	0x53,A
+  07B7    01D4    CLR	0x54
+  07B8    01D5    CLR	0x55
+  07B9    2E26    JP	0x626
+84:               }
+85:               
+86:               void app_process_go_to_sleep()
+87:               {
+88:                   if (app_work_state == WORK_STATE_POWEROFF && water_work_state == WATER_WORK_STATE_POWEROFF && !app_charge.flag_remind_delay_10s && !app_charge.LowLed)
+  0729    086D    LD	A,0x6D
+  072A    1D03    SNZB	0x3,2
+  072B    2F37    JP	0x737
+  072C    086C    LD	A,0x6C
+  072D    1D03    SNZB	0x3,2
+  072E    2F37    JP	0x737
+  072F    1683    SETB	0x3,5
+  0730    0822    LD	A,0x22
+  0731    1D03    SNZB	0x3,2
+  0732    2F37    JP	0x737
+  0733    0827    LD	A,0x27
+  0734    1D03    SNZB	0x3,2
+  0735    2F37    JP	0x737
+89:                   {
+90:                       GotoSleep();
+  0736    2C17    JP	0x417
+91:                   }
+92:                   else
+93:                   {
+94:                       CntSleep = 0;
+  0737    1283    CLRB	0x3,5
+  0738    01C5    CLR	0x45
+  0739    0008    RET
+95:                   }
+96:               }
+97:               
+98:               
+99:               void app_process_charing()
+100:              {
+101:                 if (!work_step)
+  076A    0844    LD	A,0x44
+  076B    1D03    SNZB	0x3,2
+  076C    0008    RET
+102:                  {
+103:                      app_process_power_off();
+  076D    27B1    CALL	0x7B1
+104:                      app_process_set_water_state(WATER_WORK_STATE_POWEROFF);
+  076E    3000    LDIA	0x0
+  076F    27F0    CALL	0x7F0
+105:                      app_timer.charge_to_oldmode_count = SECOND(8);
+  0770    3020    LDIA	0x20
+  0771    1683    SETB	0x3,5
+  0772    00BA    LD	0x3A,A
+  0773    3003    LDIA	0x3
+  0774    00BB    LD	0x3B,A
+106:                      work_step++;
+  0775    1283    CLRB	0x3,5
+  0776    0AC4    INCR	0x44
+107:                  }
+  0777    0008    RET
+108:                  else
+109:                  {
+110:                      // charge_to_oldmode_timing();
+111:                      // if (app_charge.flag_charge_force_full_24hour)
+112:                      // {
+113:                      //     set_led_state(LED_INDEX_9 | LED_INDEX_10,LED_STATE_OFF);
+114:                      // }
+115:                      // else if (app_charge.FullCharge || app_charge.ForceFullCharge)
+116:                      // {
+117:                      //     set_led_state(LED_INDEX_9,LED_STATE_ON);
+118:                      //     set_led_state(LED_INDEX_10,LED_STATE_OFF);
+119:                      // }
+120:                      // else
+121:                      // {
+122:                      //     set_led_state(LED_INDEX_10,LED_STATE_ON);
+123:                      //     set_led_state(LED_INDEX_9,LED_STATE_OFF);
+124:                      // }
+125:              	}
+126:              }
+127:              
+128:              // void process_lowBat_led()
+129:              // {
+130:              //     switch (work_step)
+131:              //     {
+132:              //     case 0:
+133:              //         flag_discharge_once = 0;
+134:              //         flag_old_mode = 0;
+135:              //         turn_off();
+136:              //         work_step++;
+137:              //         power_off_led_timer = 0;
+138:              //         blink_cnt = 6;//  烁十  
+139:              //         break;
+140:              //     case 1:
+141:              //         power_off_led_timer++;
+142:              //         if (power_off_led_timer / MS(300))
+143:              //         {
+144:              //             power_off_led_timer = 0;
+145:              //             if (blink_cnt)
+146:              //             {
+147:              //                 blink_cnt--;
+148:              //                 if (!blink_cnt)
+149:              //                 {
+150:              //                     work_step++;
+151:              //                 }
+152:              //             }
+153:              //         }
+154:              //         break;
+155:              //     case 2:
+156:              //         app_process_set_work_state(WORK_STATE_POWEROFF);
+157:              //         break;
+158:              //     default:
+159:              //         break;
+160:              //     }
+161:              // }
+162:              
+163:              // void process_old_mode_run()
+164:              // {
+165:              //     static u16 old_mode_count;
+166:              //     switch (work_step)
+167:              //     {
+168:              //     case 0:
+169:              //         turn_off();
+170:              //         work_step++;
+171:              //         break;
+172:              //     case 1:
+173:              //         old_mode_count++;
+174:              //         if (old_mode_count == MINUTE(2))
+175:              //         {
+176:              //             work_mode.mode_out_put = work_mode.mode;
+177:              //         }
+178:              //         else if(old_mode_count >= MINUTE(2))
+179:              // 		{
+180:              //             work_mode.mode_out_put = WORK_MODE_IDEL;
+181:              //             INA = 0;
+182:              //             INB = 0;
+183:              // 			old_mode_count = 0;
+184:              // 		}
+185:              //         break;
+186:              //     default:
+187:              //         break;
+188:              //     }
+189:              // }
+190:              
+191:              void process_null()
+192:              {
+193:              
+194:              }
+195:              
+196:              work_state_action_t work_state_action_tab[] = 
+197:              {
+198:                  {WORK_STATE_POWEROFF,app_process_power_off},
+199:                  {WORK_STATE_WORKING,app_process_working},
+200:                  {WORK_STATE_CHARGING,app_process_charing},
+201:                  //{WORK_STATE_CHARGED,process_charged},
+202:                  //{WORK_STATE_REMIND_CHARGE,process_remind_charge},
+203:                  //{WORK_STATE_POWEROFF_MODE_LED,process_power_off_mode_led},
+204:                  //{WORK_STATE_LOWBAT_LED,process_lowBat_led},
+205:                  //{WORK_STATE_OLD_MODE_RUN,process_old_mode_run},
+206:                  //{WORK_STATE_NULL,process_null},
+207:              };
+208:              
+209:              void app_process_work()
+210:              {
+211:              	// uint8_t i = 0;
+212:                  // for ( ; i < SIZE_ARRAY(work_state_action_tab); i++)
+213:                  // {
+214:                  //     if(work_state_action_tab[i].states == app_work_state)
+215:                  //     {
+216:                  //         work_state_action_tab[i].cb();
+217:                  //         break;
+218:                  //     }
+219:                  // }
+220:                  if (app_work_state == WORK_STATE_POWEROFF)
+  0786    086D    LD	A,0x6D
+  0787    1D03    SNZB	0x3,2
+  0788    2F8A    JP	0x78A
+221:                  {
+222:                      app_process_power_off();
+  0789    27B1    CALL	0x7B1
+223:                  }
+224:                  if (app_work_state == WORK_STATE_WORKING)
+  078A    0B6D    SZDECA	0x6D
+  078B    2F8D    JP	0x78D
+225:                  {
+226:                      app_process_working();
+  078C    256F    CALL	0x56F
+227:                  }
+228:                  if (app_work_state == WORK_STATE_CHARGING)
+  078D    3002    LDIA	0x2
+  078E    066D    XORA	0x6D
+  078F    1D03    SNZB	0x3,2
+  0790    0008    RET
+229:                  {
+230:                      app_process_charing();
+  0791    2F6A    JP	0x76A
+231:                  }
+232:                  // if (app_work_state == WORK_STATE_OLD_MODE_RUN)
+233:                  // {
+234:                  //     process_old_mode_run();
+235:                  // }
+236:              }
+237:              
+238:              
+239:              
+240:              
+241:              
+242:              
+243:              
+244:              
+245:              
+246:              
+247:              
+248:              
+249:              
+250:              
+251:              
+252:              
+253:              
+254:              
+255:              
+256:              
+257:              
+258:              
+259:              
+260:              
+261:              
+262:              
+---- Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_timer.c ----------------------------------------------------------------------
+1:                #include "main.h"
+2:                
+3:                void work_chang_timing()	
+4:                {
+5:                	if (app_timer.work_updown_count)
+  06EF    1683    SETB	0x3,5
+  06F0    0837    LD	A,0x37
+  06F1    0436    ORA	0x36
+  06F2    0435    ORA	0x35
+  06F3    0434    ORA	0x34
+  06F4    1903    SZB	0x3,2
+  06F5    0008    RET
+6:                	{
+7:                		app_timer.work_updown_count--;
+  06F6    3001    LDIA	0x1
+  06F7    02B4    SUBR	0x34
+  06F8    3000    LDIA	0x0
+  06F9    1C03    SNZB	0x3,0
+  06FA    3001    LDIA	0x1
+  06FB    02B5    SUBR	0x35
+  06FC    3000    LDIA	0x0
+  06FD    1C03    SNZB	0x3,0
+  06FE    3001    LDIA	0x1
+  06FF    02B6    SUBR	0x36
+  0700    3000    LDIA	0x0
+  0701    1C03    SNZB	0x3,0
+  0702    3001    LDIA	0x1
+  0703    02B7    SUBR	0x37
+  0704    0008    RET
+8:                		// if (!app_timer.work_updown_count)
+9:                		// {
+10:               			// app_process_set_work_state(WORK_STATE_POWEROFF);
+11:               		// }
+12:               	}	
+13:               }
+14:               
+15:               void charge_to_oldmode_timing()	
+16:               {
+17:               	if (app_timer.charge_to_oldmode_count)
+18:               	{
+19:               		app_timer.charge_to_oldmode_count--;
+20:               		// if (!app_timer.charge_to_oldmode_count)
+21:               		// {
+22:               
+23:               		// }
+24:               	}	
+25:               }
+26:               
+27:               
+28:               
+29:               
+30:               
+31:               
+32:               
+33:               
+34:               
+35:               
+36:               
+---- Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_key.c ----------------------------------------------------------------------
+1:                #include "main.h"
+2:                
+3:                key_type_t key_brush_pwrtype = KEY_TYPE_IDLE;
+4:                key_type_t key_water_pwr_type = KEY_TYPE_IDLE;
+5:                key_type_t key_water_mode_type = KEY_TYPE_IDLE;
+6:                //key_type_t key_mode_type = KEY_TYPE_IDLE;
+7:                
+8:                //bit flag_no_charge;
+9:                
+10:               volatile uint KeyPressCnt1 = 0;
+11:               volatile uchar KeyRelaxCnt1 = 0;
+12:               
+13:               volatile uint KeyPressCnt2 = 0;
+14:               volatile uchar KeyRelaxCnt2 = 0;
+15:               
+16:               volatile uint KeyPressCnt3 = 0;
+17:               volatile uchar KeyRelaxCnt3 = 0;
+18:               
+19:               void key_brush_pwr_check()
+20:               {
+21:               	if(!IO_KEY_BRUSH_PWR)
+  04C9    1283    CLRB	0x3,5
+  04CA    1906    SZB	0x6,2
+  04CB    2CE8    JP	0x4E8
+22:               	{
+23:               		if(KeyPressCnt1 < 100)
+  04CC    3000    LDIA	0x0
+  04CD    0235    SUBA	0x35
+  04CE    3064    LDIA	0x64
+  04CF    1903    SZB	0x3,2
+  04D0    0234    SUBA	0x34
+  04D1    1803    SZB	0x3,0
+  04D2    2CD6    JP	0x4D6
+24:               		{
+25:               			KeyPressCnt1++;
+  04D3    0AB4    INCR	0x34
+  04D4    1903    SZB	0x3,2
+  04D5    0AB5    INCR	0x35
+26:               		}
+27:               		if(KeyPressCnt1 >= 2)
+  04D6    3000    LDIA	0x0
+  04D7    0235    SUBA	0x35
+  04D8    3002    LDIA	0x2
+  04D9    1903    SZB	0x3,2
+  04DA    0234    SUBA	0x34
+  04DB    1803    SZB	0x3,0
+28:               		{
+29:               			KeyRelaxCnt1 = 0;
+  04DC    01C9    CLR	0x49
+30:               		}
+31:               		// if (KeyPressCnt1 == 50)   //diy
+32:               		// {
+33:               		// 	key_brush_pwrtype = KEY_TYPE_LONG;
+34:               		// }
+35:               		if(KeyPressCnt1 == 100)  //长按5s
+  04DD    3064    LDIA	0x64
+  04DE    0634    XORA	0x34
+  04DF    0435    ORA	0x35
+  04E0    1D03    SNZB	0x3,2
+  04E1    0008    RET
+36:               		{	
+37:               			KeyPressCnt1 = 101;
+  04E2    3065    LDIA	0x65
+  04E3    00B4    LD	0x34,A
+  04E4    01B5    CLR	0x35
+38:               			//如果第二个按键没按下，这里有效
+39:               			key_brush_pwrtype = KEY_TYPE_LONG;
+  04E5    3002    LDIA	0x2
+  04E6    00CC    LD	0x4C,A
+  04E7    0008    RET
+40:               		}
+41:               	}
+42:               	else
+43:               	{
+44:               		if(KeyRelaxCnt1 < 2)
+  04E8    3002    LDIA	0x2
+  04E9    0249    SUBA	0x49
+  04EA    1803    SZB	0x3,0
+  04EB    2CEE    JP	0x4EE
+45:               		{
+46:               			KeyRelaxCnt1++;
+  04EC    0AC9    INCR	0x49
+47:               		}
+  04ED    0008    RET
+48:               		else
+49:               		{	
+50:               			if(KeyPressCnt1 >= 3 && KeyPressCnt1 <= 50)
+  04EE    3000    LDIA	0x0
+  04EF    0235    SUBA	0x35
+  04F0    3003    LDIA	0x3
+  04F1    1903    SZB	0x3,2
+  04F2    0234    SUBA	0x34
+  04F3    1C03    SNZB	0x3,0
+  04F4    2CFE    JP	0x4FE
+  04F5    3000    LDIA	0x0
+  04F6    0235    SUBA	0x35
+  04F7    3033    LDIA	0x33
+  04F8    1903    SZB	0x3,2
+  04F9    0234    SUBA	0x34
+  04FA    1803    SZB	0x3,0
+  04FB    2CFE    JP	0x4FE
+51:               			{
+52:               				//单击
+53:                               key_brush_pwrtype = KEY_TYPE_SHORT;
+  04FC    3005    LDIA	0x5
+  04FD    00CC    LD	0x4C,A
+54:               			}
+55:               			KeyPressCnt1 = 0;
+  04FE    01B4    CLR	0x34
+  04FF    01B5    CLR	0x35
+  0500    0008    RET
+56:               		}
+57:               	}
+58:               } 
+59:               
+60:               void key_water_pwr_check()
+61:               {
+62:               	if(!IO_KEY_WATER_PWR)
+  0501    1806    SZB	0x6,0
+  0502    2D1F    JP	0x51F
+63:               	{
+64:               		if(KeyPressCnt2 < 200)
+  0503    3000    LDIA	0x0
+  0504    0233    SUBA	0x33
+  0505    30C8    LDIA	0xC8
+  0506    1903    SZB	0x3,2
+  0507    0232    SUBA	0x32
+  0508    1803    SZB	0x3,0
+  0509    2D0D    JP	0x50D
+65:               		{
+66:               			KeyPressCnt2++;
+  050A    0AB2    INCR	0x32
+  050B    1903    SZB	0x3,2
+  050C    0AB3    INCR	0x33
+67:               		}
+68:               		if(KeyPressCnt2 >= 2)
+  050D    3000    LDIA	0x0
+  050E    0233    SUBA	0x33
+  050F    3002    LDIA	0x2
+  0510    1903    SZB	0x3,2
+  0511    0232    SUBA	0x32
+  0512    1803    SZB	0x3,0
+69:               		{
+70:               			KeyRelaxCnt2 = 0;
+  0513    01C8    CLR	0x48
+71:               		}
+72:               		// if (KeyPressCnt1 == 50)   //diy
+73:               		// {
+74:               		// 	key_water_pwr_type = KEY_TYPE_LONG;
+75:               		// }
+76:               		if(KeyPressCnt2 == 200)  //长按5s
+  0514    30C8    LDIA	0xC8
+  0515    0632    XORA	0x32
+  0516    0433    ORA	0x33
+  0517    1D03    SNZB	0x3,2
+  0518    0008    RET
+77:               		{	
+78:               			KeyPressCnt2 = 201;
+  0519    30C9    LDIA	0xC9
+  051A    00B2    LD	0x32,A
+  051B    01B3    CLR	0x33
+79:               			//如果第二个按键没按下，这里有效
+80:               			key_water_pwr_type = KEY_TYPE_LONG_LONG;
+  051C    3003    LDIA	0x3
+  051D    00CB    LD	0x4B,A
+  051E    0008    RET
+81:               		}
+82:               	}
+83:               	else
+84:               	{
+85:               		if(KeyRelaxCnt2 < 2)
+  051F    3002    LDIA	0x2
+  0520    0248    SUBA	0x48
+  0521    1803    SZB	0x3,0
+  0522    2D25    JP	0x525
+86:               		{
+87:               			KeyRelaxCnt2++;
+  0523    0AC8    INCR	0x48
+88:               		}
+  0524    0008    RET
+89:               		else
+90:               		{	
+91:               			if(KeyPressCnt2 >= 3 && KeyPressCnt2 <= 50)
+  0525    3000    LDIA	0x0
+  0526    0233    SUBA	0x33
+  0527    3003    LDIA	0x3
+  0528    1903    SZB	0x3,2
+  0529    0232    SUBA	0x32
+  052A    1C03    SNZB	0x3,0
+  052B    2D35    JP	0x535
+  052C    3000    LDIA	0x0
+  052D    0233    SUBA	0x33
+  052E    3033    LDIA	0x33
+  052F    1903    SZB	0x3,2
+  0530    0232    SUBA	0x32
+  0531    1803    SZB	0x3,0
+  0532    2D35    JP	0x535
+92:               			{
+93:               				//单击
+94:                               key_water_pwr_type = KEY_TYPE_SHORT;
+  0533    3005    LDIA	0x5
+  0534    00CB    LD	0x4B,A
+95:               			}
+96:               			KeyPressCnt2 = 0;
+  0535    01B2    CLR	0x32
+  0536    01B3    CLR	0x33
+  0537    0008    RET
+97:               		}
+98:               	}
+99:               } 
+100:              void key_water_mode_check()
+101:              {
+102:              	if(!IO_KEY_WATER_MODE)
+  0538    1886    SZB	0x6,1
+  0539    2D56    JP	0x556
+103:              	{
+104:              		if(KeyPressCnt3 < 200)
+  053A    3000    LDIA	0x0
+  053B    0231    SUBA	0x31
+  053C    30C8    LDIA	0xC8
+  053D    1903    SZB	0x3,2
+  053E    0230    SUBA	0x30
+  053F    1803    SZB	0x3,0
+  0540    2D44    JP	0x544
+105:              		{
+106:              			KeyPressCnt3++;
+  0541    0AB0    INCR	0x30
+  0542    1903    SZB	0x3,2
+  0543    0AB1    INCR	0x31
+107:              		}
+108:              		if(KeyPressCnt3 >= 2)
+  0544    3000    LDIA	0x0
+  0545    0231    SUBA	0x31
+  0546    3002    LDIA	0x2
+  0547    1903    SZB	0x3,2
+  0548    0230    SUBA	0x30
+  0549    1803    SZB	0x3,0
+109:              		{
+110:              			KeyRelaxCnt3 = 0;
+  054A    01C7    CLR	0x47
+111:              		}
+112:              		// if (KeyPressCnt1 == 50)   //diy
+113:              		// {
+114:              		// 	key_water_mode_type = KEY_TYPE_LONG;
+115:              		// }
+116:              		if(KeyPressCnt3 == 200)  //长按5s
+  054B    30C8    LDIA	0xC8
+  054C    0630    XORA	0x30
+  054D    0431    ORA	0x31
+  054E    1D03    SNZB	0x3,2
+  054F    0008    RET
+117:              		{	
+118:              			KeyPressCnt3 = 201;
+  0550    30C9    LDIA	0xC9
+  0551    00B0    LD	0x30,A
+  0552    01B1    CLR	0x31
+119:              			//如果第二个按键没按下，这里有效
+120:              			key_water_mode_type = KEY_TYPE_LONG_LONG;
+  0553    3003    LDIA	0x3
+  0554    00CA    LD	0x4A,A
+  0555    0008    RET
+121:              		}
+122:              	}
+123:              	else
+124:              	{
+125:              		if(KeyRelaxCnt3 < 2)
+  0556    3002    LDIA	0x2
+  0557    0247    SUBA	0x47
+  0558    1803    SZB	0x3,0
+  0559    2D5C    JP	0x55C
+126:              		{
+127:              			KeyRelaxCnt3++;
+  055A    0AC7    INCR	0x47
+128:              		}
+  055B    0008    RET
+129:              		else
+130:              		{	
+131:              			if(KeyPressCnt3 >= 3 && KeyPressCnt3 <= 50)
+  055C    3000    LDIA	0x0
+  055D    0231    SUBA	0x31
+  055E    3003    LDIA	0x3
+  055F    1903    SZB	0x3,2
+  0560    0230    SUBA	0x30
+  0561    1C03    SNZB	0x3,0
+  0562    2D6C    JP	0x56C
+  0563    3000    LDIA	0x0
+  0564    0231    SUBA	0x31
+  0565    3033    LDIA	0x33
+  0566    1903    SZB	0x3,2
+  0567    0230    SUBA	0x30
+  0568    1803    SZB	0x3,0
+  0569    2D6C    JP	0x56C
+132:              			{
+133:              				//单击
+134:                              key_water_mode_type = KEY_TYPE_SHORT;
+  056A    3005    LDIA	0x5
+  056B    00CA    LD	0x4A,A
+135:              			}
+136:              			KeyPressCnt3 = 0;
+  056C    01B0    CLR	0x30
+  056D    01B1    CLR	0x31
+  056E    0008    RET
+137:              		}
+138:              	}
+139:              } 
+140:              
+141:              void charge_or_lowBat_check()
+142:              {
+143:                  if (app_charge.Charge)  //充电
+  06D5    1683    SETB	0x3,5
+  06D6    1C20    SNZB	0x20,0
+  06D7    2ED9    JP	0x6D9
+144:                  {
+145:              		// if (!flag_old_mode)
+146:              		// {
+147:              		// 	if (key_brush_pwrtype == KEY_TYPE_LONG_LONG)
+148:              		// 	{
+149:              		// 		if (app_timer.charge_to_oldmode_count)
+150:              		// 		{
+151:              		// 			flag_old_mode = 1;
+152:              		// 			app_process_set_work_state(WORK_STATE_OLD_MODE_RUN); 
+153:              		// 			app_process_set_mode_init();
+154:              		// 		}
+155:              		// 	}
+156:              		// }
+157:              		key_brush_pwrtype = KEY_TYPE_IDLE;
+158:              		key_water_pwr_type = KEY_TYPE_IDLE;
+159:              		key_water_mode_type = KEY_TYPE_IDLE;
+160:                  } 
+  06D8    2EEA    JP	0x6EA
+161:                  else if (app_charge.LowPower) //低电
+  06D9    0826    LD	A,0x26
+  06DA    1903    SZB	0x3,2
+  06DB    0008    RET
+162:                  {
+163:                      if (key_brush_pwrtype || key_water_pwr_type || key_water_mode_type)
+  06DC    1283    CLRB	0x3,5
+  06DD    084C    LD	A,0x4C
+  06DE    1D03    SNZB	0x3,2
+  06DF    2EE5    JP	0x6E5
+  06E0    084B    LD	A,0x4B
+  06E1    1903    SZB	0x3,2
+  06E2    084A    LD	A,0x4A
+  06E3    1903    SZB	0x3,2
+  06E4    0008    RET
+164:                      {
+165:              			app_charge.LowLed = TURE;
+  06E5    1683    SETB	0x3,5
+  06E6    01A7    CLR	0x27
+  06E7    0AA7    INCR	0x27
+166:              			app_charge.LowLed_cnt = 0;
+  06E8    01A8    CLR	0x28
+167:                          key_brush_pwrtype = KEY_TYPE_IDLE;
+168:              			key_water_pwr_type = KEY_TYPE_IDLE;
+169:              			key_water_mode_type = KEY_TYPE_IDLE;
+  06E9    2EEA    JP	0x6EA
+170:                      }
+171:                  }
+172:              
+173:              	// if (!app_charge.Charge)
+174:              	// {
+175:              	// 	if (flag_old_mode)
+176:              	// 	{
+177:              	// 		if (key_brush_pwrtype == KEY_TYPE_SHORT)
+178:              	// 		{
+179:              	// 			key_brush_pwrtype = KEY_TYPE_IDLE;
+180:              	// 			app_process_set_work_state(WORK_STATE_POWEROFF);
+181:              	// 		}
+182:              	// 	}
+183:              	// }
+184:              	
+185:              	
+186:              	// if(key_brush_pwrtype == KEY_TYPE_LONG_LONG)
+187:              	// {
+188:              	// 	key_brush_pwrtype = KEY_TYPE_IDLE;
+189:              	// }
+190:              }
+191:              
+192:              void handle_key_pwr()
+193:              {
+194:                  switch (key_brush_pwrtype)
+  03D5    2C0C    JP	0x40C
+195:                  {
+196:                  case KEY_TYPE_SHORT:
+197:              		if (app_work_state == WORK_STATE_POWEROFF || app_charge.flag_remind_delay_10s)
+  03D6    086D    LD	A,0x6D
+  03D7    1683    SETB	0x3,5
+  03D8    1903    SZB	0x3,2
+  03D9    2BDE    JP	0x3DE
+  03DA    0822    LD	A,0x22
+  03DB    1903    SZB	0x3,2
+  03DC    2BE3    JP	0x3E3
+198:              		{
+199:              			app_charge.flag_remind_delay_10s = 0;
+  03DD    1683    SETB	0x3,5
+  03DE    3001    LDIA	0x1
+  03DF    01A2    CLR	0x22
+200:              			app_process_set_work_state(WORK_STATE_WORKING); 
+  03E0    27EB    CALL	0x7EB
+201:              			app_process_set_mode_init();
+  03E1    2792    CALL	0x792
+202:              		}
+  03E2    2C15    JP	0x415
+203:              		else if (app_work_state == WORK_STATE_WORKING)
+  03E3    1283    CLRB	0x3,5
+  03E4    0B6D    SZDECA	0x6D
+  03E5    2C15    JP	0x415
+204:              		{
+205:              			if (app_timer.work_updown_count)
+  03E6    1683    SETB	0x3,5
+  03E7    0837    LD	A,0x37
+  03E8    0436    ORA	0x36
+  03E9    0435    ORA	0x35
+  03EA    0434    ORA	0x34
+  03EB    1903    SZB	0x3,2
+  03EC    2BEF    JP	0x3EF
+206:              			{
+207:              				app_process_set_mode_next();
+  03ED    2718    CALL	0x718
+208:              			}
+  03EE    2C15    JP	0x415
+209:              	 		else
+210:              			{
+211:              				if (water_work_state == WATER_WORK_STATE_POWEROFF)
+  03EF    1283    CLRB	0x3,5
+  03F0    086C    LD	A,0x6C
+  03F1    1D03    SNZB	0x3,2
+  03F2    2BFA    JP	0x3FA
+212:              				{
+213:              					if (app_charge.Remind)
+  03F3    1683    SETB	0x3,5
+  03F4    1E20    SNZB	0x20,4
+  03F5    2BFA    JP	0x3FA
+214:              					{
+215:              						app_charge.flag_remind_delay_10s = 1;
+  03F6    01A2    CLR	0x22
+  03F7    0AA2    INCR	0x22
+216:              						app_charge.remind_delay_10s_timer = 0;
+  03F8    01A3    CLR	0x23
+  03F9    01A4    CLR	0x24
+217:              					}
+218:              				}
+219:              				app_process_set_work_state(WORK_STATE_POWEROFF);
+  03FA    3000    LDIA	0x0
+  03FB    27EB    CALL	0x7EB
+  03FC    2C15    JP	0x415
+220:              			}
+221:              		}
+222:                      break;
+223:              		
+224:                  case KEY_TYPE_LONG:
+225:              		if (app_work_state == WORK_STATE_WORKING)
+  03FD    0B6D    SZDECA	0x6D
+  03FE    2C15    JP	0x415
+226:              		{
+227:              			if (water_work_state == WATER_WORK_STATE_POWEROFF)
+  03FF    086C    LD	A,0x6C
+  0400    1D03    SNZB	0x3,2
+  0401    2C09    JP	0x409
+228:              			{
+229:              				if (app_charge.Remind)
+  0402    1683    SETB	0x3,5
+  0403    1E20    SNZB	0x20,4
+  0404    2C09    JP	0x409
+230:              				{
+231:              					app_charge.flag_remind_delay_10s = 1;
+  0405    01A2    CLR	0x22
+  0406    0AA2    INCR	0x22
+232:              					app_charge.remind_delay_10s_timer = 0;
+  0407    01A3    CLR	0x23
+  0408    01A4    CLR	0x24
+233:              				}
+234:              			}
+235:              			app_process_set_work_state(WORK_STATE_POWEROFF);
+  0409    3000    LDIA	0x0
+  040A    27EB    CALL	0x7EB
+  040B    2C15    JP	0x415
+  040C    1283    CLRB	0x3,5
+  040D    084C    LD	A,0x4C
+  040E    3A02    XORIA	0x2
+  040F    1903    SZB	0x3,2
+  0410    2BFD    JP	0x3FD
+  0411    3A07    XORIA	0x7
+  0412    1903    SZB	0x3,2
+  0413    2BD6    JP	0x3D6
+  0414    2C15    JP	0x415
+236:              		}
+237:                      break;
+238:                  default:
+239:                      break;
+240:                  }
+241:              	key_brush_pwrtype = KEY_TYPE_IDLE;
+  0415    01CC    CLR	0x4C
+  0416    0008    RET
+242:              }
+243:              
+244:              void handle_key_water()
+245:              {
+246:              	switch (key_water_pwr_type)
+  038F    2BAF    JP	0x3AF
+247:                  {
+248:                  case KEY_TYPE_SHORT:
+249:              		if (water_work_state == WATER_WORK_STATE_WORKING)
+  0390    0B6C    SZDECA	0x6C
+  0391    2B9B    JP	0x39B
+250:              		{
+251:              			if (app_work_state == WORK_STATE_POWEROFF)
+  0392    086D    LD	A,0x6D
+  0393    1D03    SNZB	0x3,2
+  0394    2B99    JP	0x399
+252:              			{
+253:              				if (app_charge.Remind)
+  0395    1683    SETB	0x3,5
+  0396    1E20    SNZB	0x20,4
+  0397    2B99    JP	0x399
+254:              				{
+255:              					app_charge.flag_remind_delay_10s = 1;
+256:              					app_charge.remind_delay_10s_timer = 0;
+  0398    259A    CALL	0x59A
+257:              				}
+258:              			}
+259:              			app_process_set_water_state(WATER_WORK_STATE_POWEROFF); 
+  0399    3000    LDIA	0x0
+  039A    2BAC    JP	0x3AC
+260:              		}
+261:              		else if (water_work_state == WATER_WORK_STATE_POWEROFF  || app_charge.flag_remind_delay_10s || water_work_state == WATER_WORK_STATE_MODE_LED)//开机
+  039B    086C    LD	A,0x6C
+  039C    1683    SETB	0x3,5
+  039D    1903    SZB	0x3,2
+  039E    2BA8    JP	0x3A8
+  039F    0822    LD	A,0x22
+  03A0    1D03    SNZB	0x3,2
+  03A1    2BA7    JP	0x3A7
+  03A2    3003    LDIA	0x3
+  03A3    1283    CLRB	0x3,5
+  03A4    066C    XORA	0x6C
+  03A5    1D03    SNZB	0x3,2
+  03A6    2BAD    JP	0x3AD
+262:              		{
+263:              			app_charge.flag_remind_delay_10s = 0;
+  03A7    1683    SETB	0x3,5
+  03A8    01A2    CLR	0x22
+264:              			app_led_water_mode_set();
+  03A9    2454    CALL	0x454
+265:              			water_motor();
+  03AA    269A    CALL	0x69A
+266:              			app_process_set_water_state(WATER_WORK_STATE_WORKING);
+  03AB    3001    LDIA	0x1
+  03AC    27F0    CALL	0x7F0
+267:              		}
+268:              		key_water_pwr_type = KEY_TYPE_IDLE;
+  03AD    01CB    CLR	0x4B
+269:                      break;
+  03AE    2BB4    JP	0x3B4
+  03AF    084B    LD	A,0x4B
+  03B0    3A05    XORIA	0x5
+  03B1    1903    SZB	0x3,2
+  03B2    2B90    JP	0x390
+  03B3    2BB4    JP	0x3B4
+270:              		
+271:                  default:
+272:                      break;
+273:                  }
+274:              	key_water_pwr_type = KEY_TYPE_IDLE;
+  03B4    01CB    CLR	0x4B
+275:              	//----------------------water_mode---------------------------//
+276:              	switch (key_water_mode_type)
+  03B5    2BCB    JP	0x3CB
+277:                  {
+278:                  case KEY_TYPE_SHORT:
+279:              		if (water_work_state == WATER_WORK_STATE_WORKING)
+  03B6    0B6C    SZDECA	0x6C
+  03B7    2BBC    JP	0x3BC
+280:              		{
+281:              			app_process_set_water_mode_next();
+  03B8    27C2    CALL	0x7C2
+282:              			app_led_water_mode_set();
+  03B9    2454    CALL	0x454
+283:              			water_motor();
+  03BA    269A    CALL	0x69A
+284:              		}
+  03BB    2BC9    JP	0x3C9
+285:              		else if (water_work_state == WATER_WORK_STATE_POWEROFF)
+  03BC    086C    LD	A,0x6C
+286:              		{
+287:              			app_process_set_water_state(WATER_WORK_STATE_MODE_LED);
+  03BD    3003    LDIA	0x3
+  03BE    1D03    SNZB	0x3,2
+  03BF    2BC2    JP	0x3C2
+  03C0    27F0    CALL	0x7F0
+  03C1    2BC8    JP	0x3C8
+288:              			app_led_water_mode_set();
+  03C2    066C    XORA	0x6C
+  03C3    1D03    SNZB	0x3,2
+  03C4    2BC9    JP	0x3C9
+289:              		}
+290:              		else if (water_work_state == WATER_WORK_STATE_MODE_LED)
+291:              		{
+292:              			app_process_set_water_state(WATER_WORK_STATE_MODE_LED);
+  03C5    3003    LDIA	0x3
+  03C6    27F0    CALL	0x7F0
+293:              			app_process_set_water_mode_next();
+  03C7    27C2    CALL	0x7C2
+294:              			app_led_water_mode_set();
+  03C8    2454    CALL	0x454
+295:              		}
+296:              		key_water_mode_type = KEY_TYPE_IDLE;
+  03C9    01CA    CLR	0x4A
+297:                      break;
+  03CA    2BD3    JP	0x3D3
+  03CB    084A    LD	A,0x4A
+  03CC    3A02    XORIA	0x2
+  03CD    1903    SZB	0x3,2
+  03CE    2BD3    JP	0x3D3
+  03CF    3A07    XORIA	0x7
+  03D0    1903    SZB	0x3,2
+  03D1    2BB6    JP	0x3B6
+  03D2    2BD3    JP	0x3D3
+298:                  case KEY_TYPE_LONG:
+299:              		// app_charge.flag_remind_delay_10s = 0;
+300:              		// app_process_set_water_state(WATER_WORK_STATE_POWEROFF);
+301:                      break;
+302:                  default:
+303:                      break;
+304:                  }
+305:              	key_water_mode_type = KEY_TYPE_IDLE;
+  03D3    01CA    CLR	0x4A
+  03D4    0008    RET
+306:              }
+307:              
+308:              void app_process_key()
+309:              {
+310:              	key_brush_pwr_check();
+  07DF    24C9    CALL	0x4C9
+311:              	key_water_pwr_check();
+  07E0    2501    CALL	0x501
+312:              	key_water_mode_check();
+  07E1    2538    CALL	0x538
+313:                  charge_or_lowBat_check();
+  07E2    26D5    CALL	0x6D5
+314:                  handle_key_pwr();
+  07E3    23D5    CALL	0x3D5
+315:              	handle_key_water();
+  07E4    2B8F    JP	0x38F
+316:              }
+317:              
+318:              
+319:              
+320:              
+321:              
+322:              
+323:              
+324:              
+325:              
+---- Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_motor.c ----------------------------------------------------------------------
+1:                 #include "main.h"
+2:                
+3:                // work_state_t work_mode = WORK_MODE_IDEL;
+4:                // work_state_t work_mode_old_keep;
+5:                // volatile unsigned char ModeDuty = 0;
+6:                // volatile unsigned char ModeDuty_restore = 0;
+7:                // volatile unsigned char Mode2TimeCnt = 0;
+8:                // volatile unsigned char TimerDiyShakeDelay;
+9:                // unsigned char TimerDiyDelay300ms;
+10:               
+11:               
+12:               u8 low_a;
+13:               u8 dead_area1;
+14:               
+15:               u8 low_b;
+16:               u8 dead_area_b1;
+17:               u8 dead_area_b2;
+18:               
+19:               //u8 Period;
+20:               //u8 DutyLow;
+21:               //u8 DutyHigh;
+22:               //u8 motor_time;
+23:               
+24:               MOTOR_InitTypeDef MOTOR_InitStruct = { 0 };
+25:               //---------------------------------------------
+26:               
+27:               app_motor_pwm_pram_t app_motor_pwm_pram = 
+28:               {
+29:                   0
+30:               };
+31:               
+32:               static volatile uint16_t motor_fix_cnt;
+33:               
+34:               void app_process_set_mode_init()
+35:               {
+36:                   work_mode.mode_out_put = work_mode.mode;
+  0792    0866    LD	A,0x66
+  0793    00E7    LD	0x67,A
+37:                   app_timer.work_updown_count = SECOND(5);
+  0794    3001    LDIA	0x1
+  0795    1683    SETB	0x3,5
+  0796    01B7    CLR	0x37
+  0797    01B6    CLR	0x36
+  0798    00B5    LD	0x35,A
+  0799    30F4    LDIA	0xF4
+  079A    00B4    LD	0x34,A
+38:                   app_led_mode_set();
+  079B    25FA    CALL	0x5FA
+39:               	app_process_motor_duty();
+  079C    2AF6    JP	0x2F6
+40:               }
+41:               
+42:               void app_process_set_mode_next(void)
+  0718    3004    LDIA	0x4
+43:               {
+44:                   work_mode.mode++;
+  0719    1283    CLRB	0x3,5
+  071A    0AE6    INCR	0x66
+45:               	if (work_mode.mode > WORK_MODE_THREE)
+  071B    0266    SUBA	0x66
+  071C    1C03    SNZB	0x3,0
+  071D    2F20    JP	0x720
+46:               	{
+47:               		work_mode.mode = WORK_MODE_ONE;
+  071E    01E6    CLR	0x66
+  071F    0AE6    INCR	0x66
+48:               	}
+49:                   app_timer.work_updown_count = SECOND(5);
+  0720    3001    LDIA	0x1
+  0721    1683    SETB	0x3,5
+  0722    01B7    CLR	0x37
+  0723    01B6    CLR	0x36
+  0724    00B5    LD	0x35,A
+  0725    30F4    LDIA	0xF4
+  0726    00B4    LD	0x34,A
+50:                   app_led_mode_set();
+  0727    25FA    CALL	0x5FA
+51:               	app_process_motor_duty();
+  0728    2AF6    JP	0x2F6
+52:               }
+53:               
+54:               void app_process_motor_duty()
+55:               {
+56:               	 switch (work_mode.mode)
+  02F6    2B0B    JP	0x30B
+57:                   {
+58:                   case WORK_MODE_ONE:
+59:                       MOTOR_InitStruct.Period = MOTOR_155Hz;
+  02F7    307F    LDIA	0x7F
+  02F8    1683    SETB	0x3,5
+  02F9    00BC    LD	0x3C,A
+60:                       MOTOR_InitStruct.DutyLow = MOTOR_155Hz_Duty_100;
+  02FA    3033    LDIA	0x33
+  02FB    2B05    JP	0x305
+61:                       MOTOR_InitStruct.DutyHigh = MOTOR_155Hz_Duty_100;
+62:                       work_mode.mode_out_put = work_mode.mode;
+63:                       break;
+64:                   case WORK_MODE_TWO:
+65:                       MOTOR_InitStruct.Period = MOTOR_200Hz;
+  02FC    3062    LDIA	0x62
+  02FD    1683    SETB	0x3,5
+  02FE    00BC    LD	0x3C,A
+66:                       MOTOR_InitStruct.DutyLow = MOTOR_200Hz_Duty_90;
+  02FF    3027    LDIA	0x27
+  0300    2B05    JP	0x305
+67:                       MOTOR_InitStruct.DutyHigh = MOTOR_200Hz_Duty_90;
+68:                        work_mode.mode_out_put = work_mode.mode;
+69:                       break;
+70:                   case WORK_MODE_THREE:
+71:                       MOTOR_InitStruct.Period = MOTOR_260Hz;
+  0301    304B    LDIA	0x4B
+  0302    1683    SETB	0x3,5
+  0303    00BC    LD	0x3C,A
+72:                       MOTOR_InitStruct.DutyLow = MOTOR_260Hz_Duty_70;
+  0304    301E    LDIA	0x1E
+  0305    00BD    LD	0x3D,A
+73:                       MOTOR_InitStruct.DutyHigh = MOTOR_260Hz_Duty_70;
+  0306    00BE    LD	0x3E,A
+74:                       work_mode.mode_out_put = work_mode.mode;
+  0307    1283    CLRB	0x3,5
+  0308    0866    LD	A,0x66
+  0309    00E7    LD	0x67,A
+75:                       break;
+  030A    2B16    JP	0x316
+  030B    0866    LD	A,0x66
+  030C    3A01    XORIA	0x1
+  030D    1903    SZB	0x3,2
+  030E    2AF7    JP	0x2F7
+  030F    3A03    XORIA	0x3
+  0310    1903    SZB	0x3,2
+  0311    2AFC    JP	0x2FC
+  0312    3A01    XORIA	0x1
+  0313    1903    SZB	0x3,2
+  0314    2B01    JP	0x301
+  0315    2B16    JP	0x316
+76:                   
+77:                   default: 
+78:                       break;
+79:                   }
+80:               	low_a = (MOTOR_InitStruct.DutyLow);//低电平的时间
+  0316    1683    SETB	0x3,5
+  0317    083D    LD	A,0x3D
+  0318    1283    CLRB	0x3,5
+  0319    00C3    LD	0x43,A
+81:                   dead_area1 =  (MOTOR_InitStruct.Period);
+  031A    1683    SETB	0x3,5
+  031B    083C    LD	A,0x3C
+  031C    1283    CLRB	0x3,5
+  031D    00C2    LD	0x42,A
+82:               
+83:                   dead_area_b1 = MOTOR_InitStruct.DutyLow + (((MOTOR_InitStruct.Period - MOTOR_InitStruct.DutyLow) - MOTOR_InitStruct.DutyHigh) >> 1);
+  031E    1683    SETB	0x3,5
+  031F    083C    LD	A,0x3C
+  0320    1283    CLRB	0x3,5
+  0321    00D3    LD	0x53,A
+  0322    01D4    CLR	0x54
+  0323    0854    LD	A,0x54
+  0324    00D6    LD	0x56,A
+  0325    1683    SETB	0x3,5
+  0326    083D    LD	A,0x3D
+  0327    1283    CLRB	0x3,5
+  0328    0253    SUBA	0x53
+  0329    00D5    LD	0x55,A
+  032A    1C03    SNZB	0x3,0
+  032B    03D6    DECR	0x56
+  032C    0856    LD	A,0x56
+  032D    00D8    LD	0x58,A
+  032E    1683    SETB	0x3,5
+  032F    083E    LD	A,0x3E
+  0330    1283    CLRB	0x3,5
+  0331    0255    SUBA	0x55
+  0332    00D7    LD	0x57,A
+  0333    1C03    SNZB	0x3,0
+  0334    03D8    DECR	0x58
+  0335    0D58    RLCA	0x58
+  0336    0CD8    RRCR	0x58
+  0337    0CD7    RRCR	0x57
+  0338    1683    SETB	0x3,5
+  0339    083D    LD	A,0x3D
+  033A    1283    CLRB	0x3,5
+  033B    0757    ADDA	0x57
+  033C    00C0    LD	0x40,A
+84:                   low_b = MOTOR_InitStruct.DutyHigh + dead_area_b1;
+  033D    1683    SETB	0x3,5
+  033E    073E    ADDA	0x3E
+  033F    1283    CLRB	0x3,5
+  0340    00C1    LD	0x41,A
+85:                   dead_area_b2 =  (MOTOR_InitStruct.Period);
+  0341    1683    SETB	0x3,5
+  0342    083C    LD	A,0x3C
+  0343    1283    CLRB	0x3,5
+  0344    00BF    LD	0x3F,A
+  0345    0008    RET
+86:               }
+87:               
+88:               #if 1
+89:               void Mode_control(void)	//50us
+90:               {
+91:               	//if((app_work_state == WORK_STATE_WORKING || app_work_state == WORK_STATE_OLD_MODE_RUN))
+92:               	//if(PwrOnBit && (!MotorStopBit))
+93:               	//{
+94:               		if(WORK_MODE_IDEL == work_mode.mode_out_put)
+  0346    0867    LD	A,0x67
+  0347    1D03    SNZB	0x3,2
+  0348    2B4C    JP	0x34C
+95:               		{
+96:               			INA = 0;
+  0349    1286    CLRB	0x6,5
+97:               			INB = 0;
+  034A    1306    CLRB	0x6,6
+98:               			return;
+  034B    0008    RET
+99:               		}
+100:              
+101:              		motor_fix_cnt++;
+  034C    0AA6    INCR	0x26
+  034D    1903    SZB	0x3,2
+  034E    0AA7    INCR	0x27
+102:              		if (motor_fix_cnt <= low_a) 
+  034F    0843    LD	A,0x43
+  0350    00F0    LD	0x70,A
+  0351    01F1    CLR	0x71
+  0352    0827    LD	A,0x27
+  0353    0271    SUBA	0x71
+  0354    1D03    SNZB	0x3,2
+  0355    2B58    JP	0x358
+  0356    0826    LD	A,0x26
+  0357    0270    SUBA	0x70
+  0358    1C03    SNZB	0x3,0
+  0359    2B5C    JP	0x35C
+103:              		{
+104:              			INA = 0;
+  035A    1286    CLRB	0x6,5
+105:              			// INA_OFF
+106:              		}
+  035B    2B67    JP	0x367
+107:              		else if (motor_fix_cnt <= dead_area1)
+  035C    0842    LD	A,0x42
+  035D    00F0    LD	0x70,A
+  035E    01F1    CLR	0x71
+  035F    0827    LD	A,0x27
+  0360    0271    SUBA	0x71
+  0361    1D03    SNZB	0x3,2
+  0362    2B65    JP	0x365
+  0363    0826    LD	A,0x26
+  0364    0270    SUBA	0x70
+  0365    1803    SZB	0x3,0
+108:              		{
+109:              			INA = 1;
+  0366    1686    SETB	0x6,5
+110:              			// INA_ON
+111:              		}
+112:              		else
+113:              		{
+114:              			// motor_fix_cnt = 0;
+115:              		}
+116:              
+117:              		if (motor_fix_cnt <= dead_area_b1)
+  0367    0840    LD	A,0x40
+  0368    00F0    LD	0x70,A
+  0369    01F1    CLR	0x71
+  036A    0827    LD	A,0x27
+  036B    0271    SUBA	0x71
+  036C    1D03    SNZB	0x3,2
+  036D    2B70    JP	0x370
+  036E    0826    LD	A,0x26
+  036F    0270    SUBA	0x70
+  0370    1C03    SNZB	0x3,0
+  0371    2B74    JP	0x374
+118:              		{
+119:              			INB = 1;
+  0372    1706    SETB	0x6,6
+120:              			// INB_ON
+121:              		}
+  0373    0008    RET
+122:              		else if (motor_fix_cnt <= low_b)
+  0374    0841    LD	A,0x41
+  0375    00F0    LD	0x70,A
+  0376    01F1    CLR	0x71
+  0377    0827    LD	A,0x27
+  0378    0271    SUBA	0x71
+  0379    1D03    SNZB	0x3,2
+  037A    2B7D    JP	0x37D
+  037B    0826    LD	A,0x26
+  037C    0270    SUBA	0x70
+  037D    1C03    SNZB	0x3,0
+  037E    2B81    JP	0x381
+123:              		{
+124:              			INB = 0;
+  037F    1306    CLRB	0x6,6
+125:              			// INB_OFF
+126:              		}
+  0380    0008    RET
+127:              		else if (motor_fix_cnt <= dead_area_b2)
+  0381    083F    LD	A,0x3F
+  0382    00F0    LD	0x70,A
+  0383    01F1    CLR	0x71
+  0384    0827    LD	A,0x27
+  0385    0271    SUBA	0x71
+  0386    1D03    SNZB	0x3,2
+  0387    2B8A    JP	0x38A
+  0388    0826    LD	A,0x26
+  0389    0270    SUBA	0x70
+  038A    1803    SZB	0x3,0
+  038B    2B72    JP	0x372
+128:              		{
+129:              			INB = 1;
+130:              			// INB_ON
+131:              		}
+132:              		else
+133:              		{
+134:              			motor_fix_cnt = 0;
+  038C    01A6    CLR	0x26
+  038D    01A7    CLR	0x27
+  038E    0008    RET
+135:              		}
+136:              	//}
+137:              }
+138:              
+139:              #endif
+140:              
+141:              // void app_motor_process()
+142:              // {
+143:              //    if (app_work_state == WORK_STATE_WORKING)
+144:              //     {
+145:              //         if (!app_charge.Charge)
+146:              //         {
+147:              //             app_motor_mode_one_set();
+148:              //             app_motor_mode_two_set();
+149:              //             app_motor_mode_three_set();
+150:              //             app_motor_pulse_mode_set();
+151:              //             app_motor_diy_mode_set();
+152:              //         }
+153:              //     }
+154:              // }
+155:              
+156:              
+157:              
+---- Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_charge.c ----------------------------------------------------------------------
+1:                
+2:                #include "main.h"
+3:                
+4:                app_charge_t app_charge = 
+5:                {
+6:                	0
+7:                	// .Charge = 0,
+8:                	// .FullCharge = 0,
+9:                	// .low_bat_3V3 = 0,
+10:               	// .LowPower = 0,
+11:               	// .LowLed = 0,
+12:               	// .ChargeCnt = 0,
+13:               	// .ChargeFullCnt = 0,
+14:               };
+15:               
+16:               bit flag_charge_once;
+17:               bit flag_discharge_once;
+18:               
+19:               volatile uint adresultvdd_back = 0;
+20:               
+21:               //bit flag_charge_force_full_24hour;
+22:               unsigned long charge_force_full_cnt;
+23:               
+24:               unsigned char charge_full_cnt;
+25:               unsigned int charge_full_cnt1;
+26:               
+27:               volatile uint adresult_chagrge_vdd = 0;
+28:               //u16 Charge_BatAdValue = 0;
+29:               u8	Charge_BatAdSumCnt = 0;
+30:               u16 Charge_BatAdTmp = 0;
+31:               u32 Charge_BatAdSum = 0;
+32:               
+33:               #define CHARGE_VOL_SET_FULL   1300   //1V
+34:               
+35:               #define CHARGE_VOL_SET   1700   //2.4V
+36:               
+37:               #define _XTAL_FREQ 16000000UL		//如果用16M晶振则改为16000000UL
+38:               void ChargePwmOut(unsigned char Duty)
+  074B    00D3    LD	0x53,A
+39:               {
+40:               	if(Duty == 0)
+  074C    0853    LD	A,0x53
+  074D    1D03    SNZB	0x3,2
+  074E    2F53    JP	0x753
+41:               	{
+42:               		PWM0EN = 0;
+  074F    101B    CLRB	0x1B,0
+43:               		TRISB3 = 1;
+  0750    1683    SETB	0x3,5
+  0751    1586    SETB	0x6,3
+44:               	}
+  0752    0008    RET
+45:               	else
+46:               	{
+47:               		if(!PWM0EN)
+  0753    1C1B    SNZB	0x1B,0
+48:               		{
+49:               			PWM0EN = 1;
+  0754    141B    SETB	0x1B,0
+50:               		}
+51:               		CHRG_OUT_PUT();
+  0755    1683    SETB	0x3,5
+  0756    1186    CLRB	0x6,3
+52:               		PWMD0L = Duty;
+  0757    1283    CLRB	0x3,5
+  0758    0853    LD	A,0x53
+  0759    0096    LD	0x16,A
+  075A    0008    RET
+53:               	}
+54:               }
+55:               
+56:               void Charge_Check(void)                       // 0001 0001
+57:               {	
+58:               	ADCON0 = 0b00110001;   //AN12 0011 0001
+  002E    3031    LDIA	0x31
+  002F    1283    CLRB	0x3,5
+  0030    009F    LD	0x1F,A
+59:               	__delay_us(20);		//延时100us 	
+  0031    301A    LDIA	0x1A
+  0032    1283    CLRB	0x3,5
+  0033    00E0    LD	0x60,A
+  0034    0BE0    SZDECR	0x60
+  0035    2834    JP	0x34
+60:               	ADCON1 = 0b00000100;   //2.4V
+  0036    3004    LDIA	0x4
+  0037    1683    SETB	0x3,5
+  0038    009F    LD	0x1F,A
+61:               	__delay_us(20);		//延时100us 	
+  0039    301A    LDIA	0x1A
+  003A    1283    CLRB	0x3,5
+  003B    00E0    LD	0x60,A
+  003C    0BE0    SZDECR	0x60
+  003D    283C    JP	0x3C
+62:               	adresult_chagrge_vdd = AdcResultChk(VREF2_4V,CHARGE_AN12);
+  003E    300C    LDIA	0xC
+  003F    1283    CLRB	0x3,5
+  0040    00D9    LD	0x59,A
+  0041    3004    LDIA	0x4
+  0042    2778    CALL	0x778
+  0043    085A    LD	A,0x5A
+  0044    00B7    LD	0x37,A
+  0045    0859    LD	A,0x59
+  0046    00B6    LD	0x36,A
+63:               	// if(Charge_BatAdSumCnt < 8)
+64:               	// {
+65:               	// 	Charge_BatAdSumCnt++;
+66:               	// 	Charge_BatAdSum += Charge_BatAdTmp;
+67:               	// }
+68:               	// else
+69:               	// {
+70:               	// 	adresult_chagrge_vdd = Charge_BatAdTmp >> 3;
+71:               		
+72:               	// 	Charge_BatAdSum = 0;
+73:               	// 	Charge_BatAdSumCnt = 0;
+74:               	// }
+75:               	if (adresult_chagrge_vdd < CHARGE_VOL_SET_FULL) //拔电
+  0047    3005    LDIA	0x5
+  0048    0237    SUBA	0x37
+  0049    3014    LDIA	0x14
+  004A    1903    SZB	0x3,2
+  004B    0236    SUBA	0x36
+  004C    1803    SZB	0x3,0
+  004D    2869    JP	0x69
+76:               	{
+77:               		if (!flag_charge_once)
+  004E    1B7B    SZB	0x7B,6
+  004F    286C    JP	0x6C
+78:               		{
+79:               			app_charge.DisChargeCnt++;
+  0050    1683    SETB	0x3,5
+  0051    0AAB    INCR	0x2B
+  0052    1903    SZB	0x3,2
+  0053    0AAC    INCR	0x2C
+80:               			if(app_charge.DisChargeCnt >= MS(500))
+  0054    3000    LDIA	0x0
+  0055    022C    SUBA	0x2C
+  0056    3032    LDIA	0x32
+  0057    1903    SZB	0x3,2
+  0058    022B    SUBA	0x2B
+  0059    1C03    SNZB	0x3,0
+  005A    286C    JP	0x6C
+  005B    3003    LDIA	0x3
+81:               			{
+82:               				flag_charge_once = 1;
+  005C    177B    SETB	0x7B,6
+83:               				flag_discharge_once = 0;
+  005D    12FB    CLRB	0x7B,5
+84:               
+85:               				app_charge.DisChargeCnt = 0;
+  005E    01AB    CLR	0x2B
+  005F    01AC    CLR	0x2C
+86:               				app_charge.Charge = FLASE;
+  0060    1020    CLRB	0x20,0
+87:               				app_charge.FullCharge = FLASE;
+  0061    10A0    CLRB	0x20,1
+88:                          		set_led_state(LED_INDEX_9 | LED_INDEX_10,LED_STATE_OFF);
+  0062    2134    CALL	0x134
+  0063    2626    CALL	0x626
+89:               				ChargePwmOut(0);
+  0064    3000    LDIA	0x0
+  0065    274B    CALL	0x74B
+90:               				app_process_set_work_state(WORK_STATE_POWEROFF);
+  0066    3000    LDIA	0x0
+  0067    27EB    CALL	0x7EB
+  0068    286C    JP	0x6C
+91:               			}
+92:               		}
+93:               	}
+94:               	else
+95:               	{
+96:               		app_charge.DisChargeCnt = 0;
+  0069    1683    SETB	0x3,5
+  006A    01AB    CLR	0x2B
+  006B    01AC    CLR	0x2C
+97:               	}
+98:               	if (adresult_chagrge_vdd > CHARGE_VOL_SET)
+  006C    3006    LDIA	0x6
+  006D    1283    CLRB	0x3,5
+  006E    0237    SUBA	0x37
+  006F    30A5    LDIA	0xA5
+  0070    1903    SZB	0x3,2
+  0071    0236    SUBA	0x36
+  0072    1C03    SNZB	0x3,0
+  0073    2891    JP	0x91
+99:               	{
+100:              		if (!flag_discharge_once)
+  0074    1AFB    SZB	0x7B,5
+  0075    2894    JP	0x94
+101:              		{
+102:              			if (app_charge.ChargeCnt <= MS(100))
+  0076    3000    LDIA	0x0
+  0077    1683    SETB	0x3,5
+  0078    022A    SUBA	0x2A
+  0079    300B    LDIA	0xB
+  007A    1903    SZB	0x3,2
+  007B    0229    SUBA	0x29
+  007C    1803    SZB	0x3,0
+  007D    2882    JP	0x82
+103:              			{
+104:              				app_charge.ChargeCnt++;
+  007E    0AA9    INCR	0x29
+  007F    1903    SZB	0x3,2
+  0080    0AAA    INCR	0x2A
+105:              			}
+  0081    2894    JP	0x94
+106:              			else
+107:              			{
+108:              				flag_charge_once = 0;
+  0082    137B    CLRB	0x7B,6
+109:              				flag_discharge_once = 1;
+  0083    16FB    SETB	0x7B,5
+110:              
+111:              				app_charge.ChargeFullCnt = 0;
+  0084    01AD    CLR	0x2D
+  0085    01AE    CLR	0x2E
+112:              				app_charge.ChargeCnt = 0;
+  0086    01A9    CLR	0x29
+  0087    01AA    CLR	0x2A
+113:              				app_charge.Charge = TURE;
+  0088    1420    SETB	0x20,0
+114:              				app_charge.FullCharge = 0;
+  0089    10A0    CLRB	0x20,1
+115:              
+116:              				adresultvdd_back = 4096;
+  008A    1283    CLRB	0x3,5
+  008B    01B8    CLR	0x38
+  008C    3010    LDIA	0x10
+  008D    00B9    LD	0x39,A
+117:              				app_process_set_work_state(WORK_STATE_CHARGING);
+  008E    3002    LDIA	0x2
+  008F    27EB    CALL	0x7EB
+  0090    2894    JP	0x94
+118:              			}
+119:              		}
+120:              	}
+121:              	else
+122:              	{
+123:              		app_charge.ChargeCnt = 0;
+  0091    1683    SETB	0x3,5
+  0092    01A9    CLR	0x29
+  0093    01AA    CLR	0x2A
+124:              	}
+125:              	if(app_charge.Charge)
+  0094    1683    SETB	0x3,5
+  0095    1C20    SNZB	0x20,0
+  0096    2921    JP	0x121
+126:              	{
+127:              		if(app_charge.FullCharge || app_charge.ForceFullCharge)
+  0097    18A0    SZB	0x20,1
+  0098    289B    JP	0x9B
+  0099    1D20    SNZB	0x20,2
+  009A    28CC    JP	0xCC
+128:              		{
+129:              			if (charge_force_full_cnt <= (100UL * 3600 *15 + 100UL * 3600 *9)) //再过九个小时灯灭
+  009B    0846    LD	A,0x46
+  009C    1D03    SNZB	0x3,2
+  009D    28B2    JP	0xB2
+  009E    3083    LDIA	0x83
+  009F    0245    SUBA	0x45
+  00A0    1D03    SNZB	0x3,2
+  00A1    28A8    JP	0xA8
+  00A2    30D6    LDIA	0xD6
+  00A3    0244    SUBA	0x44
+  00A4    1D03    SNZB	0x3,2
+  00A5    28A8    JP	0xA8
+  00A6    3001    LDIA	0x1
+  00A7    0243    SUBA	0x43
+  00A8    1803    SZB	0x3,0
+  00A9    28B2    JP	0xB2
+130:              			// if (charge_force_full_cnt <= (100UL * 60 *2 + 100UL * 60 *1)) //再过九个小时灯灭
+131:              			{
+132:              				charge_force_full_cnt++;
+  00AA    0AC3    INCR	0x43
+  00AB    1903    SZB	0x3,2
+  00AC    0AC4    INCR	0x44
+  00AD    1903    SZB	0x3,2
+  00AE    0AC5    INCR	0x45
+  00AF    1903    SZB	0x3,2
+  00B0    0AC6    INCR	0x46
+133:              			}
+  00B1    28B3    JP	0xB3
+134:              			else
+135:              			{
+136:              				app_charge.flag_charge_force_full_24hour = 1;
+  00B2    15A0    SETB	0x20,3
+137:              			}
+138:              			if (app_charge.flag_charge_force_full_24hour)
+  00B3    1DA0    SNZB	0x20,3
+  00B4    28B8    JP	0xB8
+139:              			{
+140:              				CHRG_OUT_PUT_FULL();//关掉充电
+  00B5    1283    CLRB	0x3,5
+  00B6    212E    CALL	0x12E
+141:              			}
+  00B7    0008    RET
+142:              			else
+143:              			{
+144:              				if (app_charge.ForceFullCharge)
+  00B8    1920    SZB	0x20,2
+  00B9    28B5    JP	0xB5
+145:              				{
+146:              					CHRG_OUT_PUT_FULL();//关掉充电
+147:              				}
+148:              				else
+149:              				{
+150:              					if (adresultvdd > Voltage4V05)  //如果小于4.05V复冲
+  00BA    3004    LDIA	0x4
+  00BB    1283    CLRB	0x3,5
+  00BC    023B    SUBA	0x3B
+  00BD    30BE    LDIA	0xBE
+  00BE    1903    SZB	0x3,2
+  00BF    023A    SUBA	0x3A
+  00C0    1C03    SNZB	0x3,0
+  00C1    28C4    JP	0xC4
+151:              					{
+152:              						ChargePwmOut(60);
+  00C2    303C    LDIA	0x3C
+  00C3    2F4B    JP	0x74B
+153:              					}
+154:              					else if(adresultvdd <= Voltage4V15)
+  00C4    3004    LDIA	0x4
+  00C5    023B    SUBA	0x3B
+  00C6    309D    LDIA	0x9D
+  00C7    1903    SZB	0x3,2
+  00C8    023A    SUBA	0x3A
+  00C9    1803    SZB	0x3,0
+  00CA    0008    RET
+  00CB    28B5    JP	0xB5
+155:              					{
+156:              						CHRG_OUT_PUT_FULL();//关掉充电
+157:              					}
+158:              			}
+159:              			}
+160:              			
+161:              		}
+162:              		else
+163:              		{
+164:              			//当电池电压冲到4.1V，强制充满电
+165:              			// if (adresultvdd < Voltage4V1)
+166:              			// {
+167:              			// 	SysTime30minCnt++;
+168:              			// 	if (SysTime30minCnt > 100UL * 60 * 30)//30min
+169:              			// 	{
+170:              			// 		app_charge.FullCharge = 1;
+171:              			// 	}
+172:              			// }
+173:              			// else
+174:              			// {
+175:              			// 	SysTime30minCnt = 0;
+176:              			// }	
+177:              			if (adresultvdd <= Voltage4V1) //如果大于4.15V停止充电
+178:              			{
+179:              				if (++charge_full_cnt1 >= MINUTE(30))
+180:              				{
+181:              					CHRG_OUT_PUT_FULL();//关掉充电
+182:              					app_charge.FullCharge = TURE;
+183:              				}
+184:              			} 
+185:              			if (adresultvdd <= Voltage4V2) //如果大于4.2V停止充电
+  00CC    3004    LDIA	0x4
+  00CD    1283    CLRB	0x3,5
+  00CE    023B    SUBA	0x3B
+  00CF    3093    LDIA	0x93
+  00D0    1903    SZB	0x3,2
+  00D1    023A    SUBA	0x3A
+  00D2    1803    SZB	0x3,0
+  00D3    28DD    JP	0xDD
+186:              			{
+187:              				if (++charge_full_cnt >= 100)
+  00D4    3064    LDIA	0x64
+  00D5    0ACD    INCR	0x4D
+  00D6    024D    SUBA	0x4D
+  00D7    1C03    SNZB	0x3,0
+  00D8    28DE    JP	0xDE
+188:              				{
+189:              					CHRG_OUT_PUT_FULL();//关掉充电
+  00D9    212E    CALL	0x12E
+190:              					app_charge.FullCharge = TURE;
+  00DA    1683    SETB	0x3,5
+  00DB    14A0    SETB	0x20,1
+  00DC    28DE    JP	0xDE
+191:              				}
+192:              			} 
+193:              			else
+194:              			{
+195:              				charge_full_cnt = 0;
+  00DD    01CD    CLR	0x4D
+196:              			}
+197:              			//
+198:              			if (charge_force_full_cnt <= 100UL * 3600 *15)//100 * 3600 *15  
+  00DE    1683    SETB	0x3,5
+  00DF    0846    LD	A,0x46
+  00E0    1D03    SNZB	0x3,2
+  00E1    28F6    JP	0xF6
+  00E2    3052    LDIA	0x52
+  00E3    0245    SUBA	0x45
+  00E4    1D03    SNZB	0x3,2
+  00E5    28EC    JP	0xEC
+  00E6    3065    LDIA	0x65
+  00E7    0244    SUBA	0x44
+  00E8    1D03    SNZB	0x3,2
+  00E9    28EC    JP	0xEC
+  00EA    30C1    LDIA	0xC1
+  00EB    0243    SUBA	0x43
+  00EC    1803    SZB	0x3,0
+  00ED    28F6    JP	0xF6
+199:              			// if (charge_force_full_cnt <= 100UL * 60 * 2)//100 * 3600 *15  
+200:              			{
+201:              				charge_force_full_cnt++;
+  00EE    0AC3    INCR	0x43
+  00EF    1903    SZB	0x3,2
+  00F0    0AC4    INCR	0x44
+  00F1    1903    SZB	0x3,2
+  00F2    0AC5    INCR	0x45
+  00F3    1903    SZB	0x3,2
+  00F4    0AC6    INCR	0x46
+202:              			}
+  00F5    28F7    JP	0xF7
+203:              			else
+204:              			{
+205:              				app_charge.ForceFullCharge = TURE;
+  00F6    1520    SETB	0x20,2
+206:              			}
+207:              
+208:              			if (adresultvdd_back >= adresultvdd)
+  00F7    1283    CLRB	0x3,5
+  00F8    083B    LD	A,0x3B
+  00F9    0239    SUBA	0x39
+  00FA    1D03    SNZB	0x3,2
+  00FB    28FE    JP	0xFE
+  00FC    083A    LD	A,0x3A
+  00FD    0238    SUBA	0x38
+  00FE    1C03    SNZB	0x3,0
+  00FF    2904    JP	0x104
+209:              			{
+210:              				adresultvdd_back = adresultvdd;
+  0100    083B    LD	A,0x3B
+  0101    00B9    LD	0x39,A
+  0102    083A    LD	A,0x3A
+  0103    00B8    LD	0x38,A
+211:              			}
+212:              			
+213:              			
+214:              			if(adresultvdd_back < Voltage4V1)
+  0104    3004    LDIA	0x4
+  0105    0239    SUBA	0x39
+  0106    30AF    LDIA	0xAF
+  0107    1903    SZB	0x3,2
+  0108    0238    SUBA	0x38
+  0109    1803    SZB	0x3,0
+  010A    290D    JP	0x10D
+215:              			{
+216:              				ChargePwmOut(60);
+  010B    303C    LDIA	0x3C
+  010C    2F4B    JP	0x74B
+217:              			}
+218:              			else if(adresultvdd_back < Voltage4V0)
+  010D    3004    LDIA	0x4
+  010E    0239    SUBA	0x39
+  010F    30CC    LDIA	0xCC
+  0110    1903    SZB	0x3,2
+  0111    0238    SUBA	0x38
+  0112    1803    SZB	0x3,0
+  0113    2916    JP	0x116
+219:              			{
+220:              				ChargePwmOut(60);
+  0114    303C    LDIA	0x3C
+  0115    2F4B    JP	0x74B
+221:              			}
+222:              			else if(adresultvdd_back < Voltage3V4)
+  0116    3005    LDIA	0x5
+  0117    0239    SUBA	0x39
+  0118    30A5    LDIA	0xA5
+  0119    1903    SZB	0x3,2
+  011A    0238    SUBA	0x38
+  011B    1803    SZB	0x3,0
+  011C    291F    JP	0x11F
+223:              			{
+224:              				ChargePwmOut(80);
+  011D    3050    LDIA	0x50
+  011E    2F4B    JP	0x74B
+225:              			}
+226:              			else
+227:              			{
+228:              				ChargePwmOut(60);   //小于3.5V就是60%的pwm输出
+  011F    303C    LDIA	0x3C
+  0120    2F4B    JP	0x74B
+229:              			}
+230:              		}
+231:              	}
+232:              	else
+233:              	{
+234:              		charge_full_cnt1 = 0;
+235:              		charge_full_cnt = 0;
+  0121    1283    CLRB	0x3,5
+  0122    01CD    CLR	0x4D
+236:              		charge_force_full_cnt = 0;
+  0123    1683    SETB	0x3,5
+  0124    01C3    CLR	0x43
+  0125    01C4    CLR	0x44
+  0126    01C5    CLR	0x45
+  0127    01C6    CLR	0x46
+237:              		app_charge.flag_charge_force_full_24hour = 0;
+  0128    11A0    CLRB	0x20,3
+238:              		app_charge.FullCharge = 0;
+  0129    10A0    CLRB	0x20,1
+239:              		app_charge.ForceFullCharge = 0;	
+  012A    1120    CLRB	0x20,2
+240:              		app_charge.ChargeFullCnt = 0;
+  012B    01AD    CLR	0x2D
+  012C    01AE    CLR	0x2E
+  012D    0008    RET
+241:              	}
+242:              }
+243:              
+244:              void app_process_charge()
+245:              {
+246:                  Charge_Check(); 
+  07FA    282E    JP	0x2E
+247:              }
+---- Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_adc.c ----------------------------------------------------------------------
+1:                
+2:                #include "main.h"
+3:                
+4:                volatile unsigned int	adresult;
+5:                volatile unsigned long adsum;
+6:                volatile unsigned int admin,admax;
+7:                volatile unsigned char adtimes;
+8:                volatile uint adresultvdd = 0;
+9:                volatile uint adresultvdd_back = 0;
+10:               volatile unsigned char BatStates = 5;
+11:               volatile unsigned char BatAdcCnt;
+12:               volatile unsigned char CntLowPowerOff;
+13:               volatile uint adresultmotor;
+14:               volatile uchar motor_lock_cnt = 0;
+15:               // unsigned char FlagOldMode;
+16:               unsigned char bat_remind_delay;
+17:               
+18:               //u16 BatAdValue = 0;
+19:               u8	BatAdSumCnt = 0;
+20:               u16 BatAdTmp = 0;
+21:               u32 BatAdSum = 0;
+22:               
+23:               
+24:               #define _XTAL_FREQ 16000000UL		//如果用16M晶振则改为16000000UL
+25:               
+26:               
+27:               static uint AdcOneChk(uchar adch,uchar adldo)	//ADC单次采样
+28:               {
+29:               	volatile uchar i = 0;
+  05CD    01D6    CLR	0x56
+30:               	volatile uint ad_result;
+31:               	
+32:               	//ADCON1 = adldo;//0B00001100;						//左对齐，用2.4V做AD参考 
+33:               	__delay_us(20);		//延时100us 					//延时20us
+  05CE    301A    LDIA	0x1A
+  05CF    1283    CLRB	0x3,5
+  05D0    00D5    LD	0x55,A
+  05D1    0BD5    SZDECR	0x55
+  05D2    2DD1    JP	0x5D1
+  05D3    0000    NOP
+  05D4    0000    NOP
+  05D5    0000    NOP
+  05D6    0000    NOP
+34:               	//ADCON0 = 0X41 | (adch << 2);	//16分频
+35:               	asm("nop");
+36:               	asm("nop");
+37:               	asm("nop");
+38:               	asm("nop");
+39:               	GODONE = 1;						//开始转换
+  05D7    1283    CLRB	0x3,5
+  05D8    149F    SETB	0x1F,1
+40:               
+41:               	while(GODONE)
+  05D9    1C9F    SNZB	0x1F,1
+  05DA    2DE2    JP	0x5E2
+  05DB    0064    CLRWDT
+42:               	{
+43:               		asm("clrwdt");
+44:               		if(0 == (--i))
+  05DC    1283    CLRB	0x3,5
+  05DD    0BD6    SZDECR	0x56
+  05DE    2DD9    JP	0x5D9
+45:               			return 0;				//转换超时
+  05DF    01D3    CLR	0x53
+  05E0    01D4    CLR	0x54
+  05E1    0008    RET
+46:               	}
+47:               	ad_result=ADRESH;
+  05E2    081E    LD	A,0x1E
+  05E3    00D7    LD	0x57,A
+  05E4    01D8    CLR	0x58
+48:               	ad_result= (ad_result<<4);
+  05E5    0ED7    SWAPR	0x57
+  05E6    0ED8    SWAPR	0x58
+  05E7    30F0    LDIA	0xF0
+  05E8    05D8    ANDR	0x58
+  05E9    0857    LD	A,0x57
+  05EA    390F    ANDIA	0xF
+  05EB    04D8    ORR	0x58
+  05EC    30F0    LDIA	0xF0
+  05ED    05D7    ANDR	0x57
+49:               	ad_result +=(ADRESL>>4);	//计算12位AD值
+  05EE    1683    SETB	0x3,5
+  05EF    0E1E    SWAPA	0x1E
+  05F0    390F    ANDIA	0xF
+  05F1    1283    CLRB	0x3,5
+  05F2    07D7    ADDR	0x57
+  05F3    1803    SZB	0x3,0
+  05F4    0AD8    INCR	0x58
+50:               	//ad_result=(ADRESH<<4)+(ADRESL>>4);	//计算12位AD值;
+51:               	return ad_result;
+  05F5    0858    LD	A,0x58
+  05F6    00D4    LD	0x54,A
+  05F7    0857    LD	A,0x57
+  05F8    00D3    LD	0x53,A
+  05F9    0008    RET
+52:               }
+53:               
+54:               uint AdcResultChk(uchar adch,uchar adldo)//ADC多次采样
+  0778    00DC    LD	0x5C,A
+55:               {
+56:               	volatile uchar i = 0;
+  0779    01DD    CLR	0x5D
+57:               	volatile uint ad_value;
+58:               	volatile uint ad_value_max;
+59:               	volatile uint ad_value_min;
+60:               	
+61:               	volatile uint ad_temp;
+62:               	
+63:               	ad_value = AdcOneChk(adch,adldo);
+  077A    0859    LD	A,0x59
+  077B    00D3    LD	0x53,A
+  077C    25CD    CALL	0x5CD
+  077D    0854    LD	A,0x54
+  077E    00DF    LD	0x5F,A
+  077F    0853    LD	A,0x53
+  0780    00DE    LD	0x5E,A
+64:                   return ad_value;
+  0781    085F    LD	A,0x5F
+  0782    00DA    LD	0x5A,A
+  0783    085E    LD	A,0x5E
+  0784    00D9    LD	0x59,A
+  0785    0008    RET
+65:               	
+66:               	// ad_value_max = ad_value;//获取最大值
+67:               	// ad_value_min = ad_value;//获取最小值
+68:               	// ad_temp = ad_value;
+69:               	// for(i = 9;i > 0;i--)
+70:               	// {
+71:               	// 	ad_value = AdcOneChk(adch,adldo);
+72:               	// 	if(ad_value > ad_value_max)
+73:               	// 	{
+74:               	// 		ad_temp += ad_value_max;
+75:               	// 		ad_value_max = ad_value;
+76:               	// 	}
+77:               	// 	else if(ad_value < ad_value_min)
+78:               	// 	{
+79:               	// 		ad_temp += ad_value_min;
+80:               	// 		ad_value_min = ad_value;
+81:               	// 	}
+82:               	// 	else
+83:               	// 	{
+84:               	// 		ad_temp += ad_value;
+85:               	// 	}
+86:               	// }
+87:               
+88:               	// ad_temp -= ad_value_max;
+89:               	// ad_temp -= ad_value_min;
+90:               
+91:               	// return (ad_temp>>3);	//平均值
+92:               }
+93:               
+94:               
+95:               //bit flag_charge_force_full;
+96:               bit flag_charge_force_full_24hour;
+97:               unsigned long charge_force_full_cnt;
+98:               void app_adc_bat_voltage_check()
+99:               {
+100:                  ADCON0 = 0b00111101;   //AN15
+  0295    303D    LDIA	0x3D
+  0296    1283    CLRB	0x3,5
+  0297    009F    LD	0x1F,A
+101:                  __delay_us(20);		//延时100us 	
+  0298    301A    LDIA	0x1A
+  0299    1283    CLRB	0x3,5
+  029A    00E0    LD	0x60,A
+  029B    0BE0    SZDECR	0x60
+  029C    2A9B    JP	0x29B
+102:                  ADCON1 = 0b00000000;   //VDD
+  029D    1683    SETB	0x3,5
+  029E    019F    CLR	0x1F
+103:                  __delay_us(20);		//延时100us 
+  029F    301A    LDIA	0x1A
+  02A0    1283    CLRB	0x3,5
+  02A1    00E0    LD	0x60,A
+  02A2    0BE0    SZDECR	0x60
+  02A3    2AA2    JP	0x2A2
+  02A4    300F    LDIA	0xF
+104:              
+105:                  adresultvdd = AdcResultChk(ANVdd,VREFVdd);
+  02A5    1283    CLRB	0x3,5
+  02A6    01D9    CLR	0x59
+  02A7    2778    CALL	0x778
+  02A8    085A    LD	A,0x5A
+  02A9    00BB    LD	0x3B,A
+  02AA    0859    LD	A,0x59
+  02AB    00BA    LD	0x3A,A
+106:                  // BatAdTmp = AdcResultChk(ANVdd,VREFVdd);
+107:                  // if(BatAdSumCnt < 32)
+108:              	// {
+109:              	// 	BatAdSumCnt++;
+110:              	// 	BatAdSum += BatAdTmp;
+111:              	// }
+112:              	// else
+113:              	// {
+114:              	// 	adresultvdd = BatAdSum >> 5;
+115:              		
+116:              	// 	BatAdSum = 0;
+117:              	// 	BatAdSumCnt = 0;
+118:              	// }
+119:              
+120:                  if(app_charge.Charge)		//充电
+  02AC    1683    SETB	0x3,5
+  02AD    1C20    SNZB	0x20,0
+  02AE    2AC4    JP	0x2C4
+121:                  {
+122:                      if(adresultvdd < Voltage3V2)      //3.0V  //// / 1.2V/3.0*4096=1638
+  02AF    3005    LDIA	0x5
+  02B0    1283    CLRB	0x3,5
+  02B1    023B    SUBA	0x3B
+  02B2    30FF    LDIA	0xFF
+  02B3    1903    SZB	0x3,2
+  02B4    023A    SUBA	0x3A
+  02B5    1803    SZB	0x3,0
+  02B6    2AC2    JP	0x2C2
+123:                      {
+124:                          CntLowPowerOff++;
+  02B7    0AD0    INCR	0x50
+125:                          if(CntLowPowerOff > 250)
+  02B8    30FB    LDIA	0xFB
+  02B9    0250    SUBA	0x50
+  02BA    1C03    SNZB	0x3,0
+  02BB    0008    RET
+126:                          {
+127:                              CntLowPowerOff = 0;
+  02BC    01D0    CLR	0x50
+128:                              app_charge.Remind = 0;
+  02BD    1683    SETB	0x3,5
+  02BE    1220    CLRB	0x20,4
+129:                              app_charge.LowLed = 0;
+  02BF    01A7    CLR	0x27
+130:                              app_charge.LowPower = 0;
+  02C0    01A6    CLR	0x26
+  02C1    0008    RET
+131:                          }		 
+132:                      }
+133:                      else
+134:                      {
+135:                          CntLowPowerOff = 0;
+  02C2    01D0    CLR	0x50
+  02C3    0008    RET
+136:                      }
+137:                  }           //用电
+138:                  else
+139:                  {
+140:                      if(adresultvdd > Voltage2V9 - 20)      //3.0V  //// / 1.2V/3.0*4096=1638
+  02C4    3006    LDIA	0x6
+  02C5    1283    CLRB	0x3,5
+  02C6    023B    SUBA	0x3B
+  02C7    308B    LDIA	0x8B
+  02C8    1903    SZB	0x3,2
+  02C9    023A    SUBA	0x3A
+  02CA    1C03    SNZB	0x3,0
+  02CB    2AE2    JP	0x2E2
+141:                      {
+142:                          CntLowPowerOff++;
+  02CC    0AD0    INCR	0x50
+143:                          if(CntLowPowerOff > 100)
+  02CD    3065    LDIA	0x65
+  02CE    0250    SUBA	0x50
+  02CF    1C03    SNZB	0x3,0
+  02D0    2AE3    JP	0x2E3
+144:                          {
+145:                              CntLowPowerOff = 0;
+  02D1    01D0    CLR	0x50
+146:                              app_charge.Remind = FLASE;
+  02D2    1683    SETB	0x3,5
+  02D3    1220    CLRB	0x20,4
+147:              
+148:                              if (!app_charge.LowPower)
+  02D4    0826    LD	A,0x26
+  02D5    1D03    SNZB	0x3,2
+  02D6    2AE3    JP	0x2E3
+149:                              {
+150:                                  app_process_set_work_state(WORK_STATE_POWEROFF);
+  02D7    3000    LDIA	0x0
+  02D8    27EB    CALL	0x7EB
+151:                                  app_process_set_water_state(WATER_WORK_STATE_POWEROFF);
+  02D9    3000    LDIA	0x0
+  02DA    27F0    CALL	0x7F0
+152:                                  app_charge.LowPower = 1;
+  02DB    1683    SETB	0x3,5
+  02DC    01A6    CLR	0x26
+  02DD    0AA6    INCR	0x26
+153:                                  app_charge.LowLed = TURE;
+  02DE    01A7    CLR	0x27
+  02DF    0AA7    INCR	0x27
+154:                                  app_charge.LowLed_cnt = 0;
+  02E0    01A8    CLR	0x28
+  02E1    2AE3    JP	0x2E3
+155:                              }
+156:                          }		 
+157:                      }
+158:                      else
+159:                      {
+160:                          CntLowPowerOff = 0;
+  02E2    01D0    CLR	0x50
+161:                      }
+162:              
+163:                      if(adresultvdd > Voltage3V4 -15)
+  02E3    3005    LDIA	0x5
+  02E4    1283    CLRB	0x3,5
+  02E5    023B    SUBA	0x3B
+  02E6    3097    LDIA	0x97
+  02E7    1903    SZB	0x3,2
+  02E8    023A    SUBA	0x3A
+  02E9    1C03    SNZB	0x3,0
+  02EA    2AF4    JP	0x2F4
+  02EB    3065    LDIA	0x65
+164:                      {
+165:                          bat_remind_delay++;
+  02EC    0ACE    INCR	0x4E
+166:                          if(bat_remind_delay > 100)
+  02ED    024E    SUBA	0x4E
+  02EE    1C03    SNZB	0x3,0
+  02EF    0008    RET
+167:                          {
+168:                              bat_remind_delay = 0;
+  02F0    01CE    CLR	0x4E
+169:                              app_charge.Remind = 1;
+  02F1    1683    SETB	0x3,5
+  02F2    1620    SETB	0x20,4
+  02F3    0008    RET
+170:                          }
+171:                      }
+172:                      else
+173:                      {
+174:                          bat_remind_delay = 0;
+  02F4    01CE    CLR	0x4E
+  02F5    0008    RET
+175:                      }
+176:                      
+177:                  }
+178:              }		
+179:              
+180:              void MotorAdcIChk(void)
+181:              {
+182:                  // if (app_work_state == WORK_STATE_WORKING)
+183:                  // {
+184:                      adresultmotor = AdcResultChk(ANI_DET,VREF2_0V);
+185:                      {
+186:                          if(adresultmotor > MOTORIOVER)
+187:                          {
+188:                              if(motor_lock_cnt <= MS(200))
+189:                              {
+190:                                  motor_lock_cnt++;
+191:                              }
+192:                              else
+193:                              {
+194:                                  app_process_set_work_state(WORK_STATE_POWEROFF);
+195:                              }
+196:                          }
+197:                          else
+198:                          {
+199:                              motor_lock_cnt = 0;
+200:                              // if(motor_lock_cnt > 20)
+201:                              // {
+202:                              // 	motor_lock_cnt--;
+203:                              // }
+204:                              // 	else
+205:                              // 	{
+206:                              // 		motor_lock_cnt = 0;
+207:                              // 	}
+208:                          }
+209:                      }
+210:                  // }
+211:              }
+212:              
+213:              void app_adc_process()
+214:              {
+215:                  //MotorAdcIChk();
+216:                  app_adc_bat_voltage_check();
+  07FB    2A95    JP	0x295
+217:              }
+218:              
+219:              
+220:              
+221:              
+222:              
+223:              
+224:              
+225:              
+226:              
+227:              
+228:              
+229:              
+230:              
+231:              
+232:              
+233:              
+234:              
+235:              
+236:              
+237:              
+238:              
+239:              
+240:              
+241:              
+242:              // volatile unsigned int adresultmotor;
+243:              // volatile unsigned int adresultvdd;
+244:              // volatile unsigned long adsum;
+245:              // volatile unsigned int admin,admax;
+246:              // volatile unsigned char adtimes;
+247:              
+248:              // volatile unsigned char BatStates = 4;
+249:              
+250:              // volatile unsigned char CntLowPowerOff;
+251:              
+252:              
+253:              // volatile unsigned char BatAdcCnt;
+254:              
+255:              
+256:              // unsigned char CntOverCurrent;
+257:              // volatile unsigned char Mode2ADCDelay;
+258:              
+259:              // bool FlagAdcSwitch;
+260:              // bool FlagAdcVddOver;
+261:              // bool FlagAdcMotorOver;
+262:              
+263:              
+264:              // bool FlagCharge = 0;
+265:              // bool FlagAdcSwitch=0;
+266:              // bool FlagAdcMotorOver;
+267:              // bool FlagAdcVddOver;
+268:              // bool FlagLowPower;
+269:              // bool FlagFullCharge;
+270:              // bool FlagLowLed = 0;;
+271:              
+272:              
+273:              // void AdcChkVdd()
+274:              // {
+275:              // 	volatile unsigned int ad_temp;	
+276:              
+277:              // 	GODONE = 1;						//开始转换
+278:              
+279:              // 	unsigned char i = 0;
+280:              // 	while(GODONE)
+281:              // 	{
+282:              // 		if(0 == (--i))
+283:              // 		return;
+284:              // 	}
+285:              // 	ad_temp=ADRESH;
+286:              // 	ad_temp= (ad_temp<<4);
+287:              // 	ad_temp +=(ADRESL>>4);	//计算12位AD值
+288:              	
+289:              // 	if(0 == admax)
+290:              // 	{
+291:              // 		admax = ad_temp;
+292:              // 		admin = ad_temp;
+293:              // 	}
+294:              // 	else if(ad_temp > admax)
+295:              // 		admax = ad_temp;				//AD采样最大值
+296:              // 	else if(ad_temp < admin)
+297:              // 		admin = ad_temp;				//AD采样最小值
+298:              	
+299:              // 	adsum += ad_temp;
+300:              // 	//Flag10ms_Adc=1;
+301:              // 	if(++adtimes >= 10)
+302:              // 	{
+303:              // 		adsum -= admax;
+304:              // 		if(adsum >= admin)	adsum -= admin;
+305:              // 		else	adsum = 0;
+306:              // 		if(FlagAdcSwitch==0)
+307:              // 		{
+308:              // 			adresultvdd = (unsigned int)(adsum >> 3);		//8次平均值作为最终结果	
+309:              // 			FlagAdcVddOver=TURE;
+310:              // 			ADCON0 = 0b00000001;   //AN0
+311:              // 			ADCON1 = 0b00000101;   //2.0V
+312:              // 			//需要转换ADC始终频率
+313:              // 				// ADCON0 = 0xc0;  //改变时钟分频，//转换通道检测AN0， 1100 0001
+314:              // 				// LDOEN = 1;       //设置参考电压LDO
+315:              // 			FlagAdcSwitch=1;		  
+316:              // 		}
+317:              // 		else
+318:              // 		{
+319:              // 			adresultmotor = (unsigned int)(adsum >> 3);		//8次平均值作为最终结果	
+320:              // 			FlagAdcMotorOver=TURE;
+321:              // 			ADCON0 = 0b00111101;   //AN15
+322:              //           	ADCON1 = 0b00000000;   //VDD
+323:              // 			//需要转换ADC始终频率
+324:              // 			// ADCON0 = 0x7d;  //改变时钟分频，//转换通道检测基准电压 0111 1101
+325:              // 			// LDOEN = 0;       //设置参考电压VDD
+326:              // 		  	FlagAdcSwitch=0;		  
+327:              // 		}										
+328:              // 		adsum = 0;
+329:              // 		admin = 0;
+330:              // 		admax = 0;
+331:              // 		adtimes = 0;
+332:              // 	}
+333:              // }
+334:              
+335:              // bool get_bat_low_state()
+336:              // {
+337:              //     return FlagLowLed;
+338:              // }
+339:              // void clear_bat_low_state()
+340:              // {
+341:              //     FlagLowLed = FLASE;
+342:              // }
+343:              
+344:              // void voltage_check()  //低压检测
+345:              // {
+346:              // 	if(FlagAdcVddOver==TURE)
+347:              //     {
+348:              // 		FlagAdcVddOver=FLASE;
+349:              	   
+350:              // 		if(FlagCharge)		//充电
+351:              // 		{
+352:              // 			// if(adresultvdd < Voltage3V3)      //3.0V  //// / 1.2V/3.0*4096=1638
+353:              // 			// {
+354:              // 			// 	CntLowPowerOff++;
+355:              // 			// 	if(CntLowPowerOff > 2)
+356:              // 			// 	{
+357:              // 			// 		CntLowPowerOff = 0;
+358:              // 			// 		//if(!FlagLowPower)
+359:              // 			// 		//{
+360:              // 			// 			//	FlagLowLed = 1;
+361:              // 			// 		//}
+362:              // 			// 		FlagLowPower = FLASE;
+363:              					
+364:              // 			// 		//BatStates = 1;
+365:              // 			// 	}		 
+366:              // 			// }
+367:              // 			// else
+368:              // 			// {
+369:              // 			// 	CntLowPowerOff = 0;
+370:              // 			// }
+371:              			
+372:              // 			if(BatStates == 1)
+373:              // 			{
+374:              // 				if(adresultvdd < Voltage3V4)  
+375:              // 				{
+376:              // 					BatAdcCnt++;
+377:              // 					if(BatAdcCnt > 2)
+378:              // 					{
+379:              // 						BatAdcCnt = 0;
+380:              // 						BatStates = 2; //大于3.3V
+381:              
+382:              // 						if(!FlagLowPower)
+383:              // 						//{
+384:              // 							//	FlagLowLed = 1;
+385:              // 						//}
+386:              // 						FlagLowPower = FLASE;
+387:              // 						FlagLowLed = FLASE;
+388:              // 						//BatStates = 1;
+389:              // 					}
+390:              // 				}
+391:              // 				else
+392:              // 				{
+393:              // 					BatAdcCnt = 0;
+394:              // 				}
+395:              // 			}
+396:              // 			else if(BatStates == 2)
+397:              // 			{
+398:              // 				if(adresultvdd < Voltage3V7)	
+399:              // 				{
+400:              // 					BatAdcCnt++;
+401:              // 					if(BatAdcCnt > 2)
+402:              // 					{
+403:              // 						BatAdcCnt = 0;
+404:              // 						BatStates = 3;	//大于3.7V
+405:              // 					}
+406:              // 				}
+407:              // 				else
+408:              // 				{
+409:              // 					BatAdcCnt = 0;
+410:              // 				}
+411:              // 			}
+412:              // 			else if(BatStates == 3)
+413:              // 			{
+414:              // 				if(adresultvdd < Voltage3V9)
+415:              // 				{
+416:              // 					BatAdcCnt++;
+417:              // 					if(BatAdcCnt > 2)
+418:              // 					{
+419:              // 						BatAdcCnt = 0;
+420:              // 						BatStates = 4;	//大于3.9V
+421:              // 					}
+422:              // 				}
+423:              // 				else
+424:              // 				{
+425:              // 					BatAdcCnt = 0;
+426:              // 				}
+427:              // 			}
+428:              // 		}
+429:              // 		else    //用电
+430:              // 		{
+431:              // 			if(adresultvdd > Voltage3V0)      //3.0V  //// / 1.2V/3.0*4096=1638
+432:              // 			{
+433:              // 				CntLowPowerOff++;
+434:              // 				if(CntLowPowerOff > 2)
+435:              // 				{
+436:              // 					CntLowPowerOff = 0;
+437:              // 					if(!FlagLowPower)
+438:              // 					{
+439:              // 						FlagLowLed = TURE;
+440:              
+441:              // 						// led_deinit();
+442:              // 						// motor_PwmOut(0);
+443:              // 						// CntLedFlash = 0;
+444:              // 						set_work_state(WORK_STATE_LOWBAT_LED);
+445:              // 					}
+446:              // 					FlagLowPower = TURE;
+447:              // 					BatStates = 1;
+448:              // 					set_work_state(WORK_STATE_POWEROFF);
+449:              // 					// if(!FlagLowPower)
+450:              // 					// {
+451:              // 					// 	FlagLowLed = TURE;
+452:              
+453:              // 					// 	// led_deinit();
+454:              // 					// 	// motor_PwmOut(0);
+455:              // 					// 	// CntLedFlash = 0;
+456:              // 					// 	// set_work_state(WORK_STATE_LOWBAT_LED);
+457:              // 					// }
+458:              // 					// FlagLowPower = TURE;
+459:              					
+460:              // 				}		 
+461:              // 			}
+462:              // 			else
+463:              // 			{
+464:              // 				CntLowPowerOff = 0;
+465:              // 			}
+466:              			
+467:              // 			if(BatStates == 4)		         //3.9~4.2V
+468:              // 			{
+469:              // 				if(adresultvdd > Voltage3V9)  
+470:              // 				{
+471:              // 					BatAdcCnt++;
+472:              // 					if(BatAdcCnt > 2)
+473:              // 					{
+474:              // 						BatAdcCnt = 0;
+475:              // 						BatStates = 3; 
+476:              // 					}
+477:              // 				}
+478:              // 				else
+479:              // 				{
+480:              // 					BatAdcCnt = 0;
+481:              // 				}
+482:              // 			}
+483:              // 			else if(BatStates == 3)			//3.6~3.9V
+484:              // 			{
+485:              // 				if(adresultvdd > Voltage3V6)
+486:              // 				{
+487:              // 					BatAdcCnt++;
+488:              // 					if(BatAdcCnt > 2)
+489:              // 					{
+490:              // 						BatAdcCnt = 0;
+491:              // 						BatStates = 2;
+492:              // 					}
+493:              // 				}
+494:              // 				else
+495:              // 				{
+496:              // 					BatAdcCnt = 0;
+497:              // 				}
+498:              // 			}
+499:              // 			else if(BatStates == 2)			//3.3~3.6V
+500:              // 			{
+501:              // 				if(adresultvdd > Voltage3V3)
+502:              // 				{
+503:              // 					BatAdcCnt++;
+504:              // 					if(BatAdcCnt > 2)
+505:              // 					{
+506:              // 						BatAdcCnt = 0;
+507:              // 						BatStates = 1;     //小于3.3V
+508:              
+509:              // 						// if(!FlagLowPower)
+510:              // 						// {
+511:              // 						// 	FlagLowLed = TURE;
+512:              
+513:              // 						// 	// led_deinit();
+514:              // 						// 	// motor_PwmOut(0);
+515:              // 						// 	// CntLedFlash = 0;
+516:              // 						// 	set_work_state(WORK_STATE_LOWBAT_LED);
+517:              // 						// }
+518:              // 						// FlagLowPower = TURE;
+519:              // 						// BatStates = 1;
+520:              // 					}
+521:              // 				}
+522:              // 				else
+523:              // 				{
+524:              // 					BatAdcCnt = 0;
+525:              // 				}
+526:              // 			}
+527:              // 			// else if(BatStates == 1)			//已经小于3.0
+528:              // 			// {
+529:              // 			// 	if(adresultvdd > Voltage3V0)
+530:              // 			// 	{
+531:              // 			// 		BatAdcCnt++;
+532:              // 			// 		if(BatAdcCnt > 2)
+533:              // 			// 		{
+534:              // 			// 			BatAdcCnt = 0;
+535:              
+536:              // 			// 			if(!FlagLowPower)
+537:              // 			// 			{
+538:              // 			// 				FlagLowLed = TURE;
+539:              
+540:              // 			// 				// led_deinit();
+541:              // 			// 				// motor_PwmOut(0);
+542:              // 			// 				// CntLedFlash = 0;
+543:              // 			// 				set_work_state(WORK_STATE_LOWBAT_LED);
+544:              // 			// 			}
+545:              // 			// 			FlagLowPower = TURE;
+546:              // 			// 			BatStates = 1;
+547:              // 			// 		}
+548:              // 			// 	}
+549:              // 			// 	else
+550:              // 			// 	{
+551:              // 			// 		BatAdcCnt = 0;
+552:              // 			// 	}
+553:              // 			// }
+554:              // 		}
+555:              // 	}		
+556:              // }
+557:              
+558:              
+559:              // void MotorOverCurrentProtect() //电压过大保护
+560:              // {
+561:              // //   if(States==2)
+562:              // //   {
+563:              // 	if(FlagAdcMotorOver)
+564:              // 	{
+565:              // 		FlagAdcMotorOver=FLASE;
+566:              // 		if(adresultmotor>ProtectSet) //电压  todo...
+567:              // 		{
+568:              // 			if (ModeDuty)
+569:              // 			{
+570:              // 				Mode2ADCDelay++;
+571:              // 				if (Mode2ADCDelay >= 1)
+572:              // 				{
+573:              // 					Mode2ADCDelay = 0;
+574:              // 					CntOverCurrent++;
+575:              // 				}
+576:              // 			} 
+577:              // 			else
+578:              // 			{
+579:              
+580:              // 			}
+581:              				
+582:              // 			if(CntOverCurrent>2)
+583:              // 			{
+584:              // 				CntOverCurrent=0; 
+585:              // 				set_work_state(WORK_STATE_POWEROFF);
+586:              // 			}				
+587:              // 	  	}
+588:              // 		else
+589:              // 		{
+590:              // 			//CntOverCurrent=0;			
+591:              // 		}			
+592:              // 	}	
+593:              //   //}	
+594:              // }
+595:              
+596:              // void process_adc_check()
+597:              // {
+598:              // 	AdcChkVdd();
+599:              // 	voltage_check();
+600:              // 	MotorOverCurrentProtect();
+601:              // }
+602:              
+---- stringtab ------------------------------------------------------------------
+---- reset_enter ------------------------------------------------------------------
+  0000    280A    JP	0xA
+  000A    280B    JP	0xB
+---- start_initialization ------------------------------------------------------------------
+  000B    3003    LDIA	0x3
+  000C    00E1    LD	0x61,A
+  000D    3002    LDIA	0x2
+  000E    01E2    CLR	0x62
+  000F    01E3    CLR	0x63
+  0010    01E4    CLR	0x64
+  0011    01E5    CLR	0x65
+  0012    00E6    LD	0x66,A
+  0013    3005    LDIA	0x5
+  0014    01E7    CLR	0x67
+  0015    01E8    CLR	0x68
+  0016    01E9    CLR	0x69
+  0017    01EA    CLR	0x6A
+  0018    00EB    LD	0x6B,A
+  0019    30A0    LDIA	0xA0
+  001A    1383    CLRB	0x3,7
+  001B    0084    LD	0x4,A
+  001C    30D7    LDIA	0xD7
+  001D    27BA    CALL	0x7BA
+  001E    3020    LDIA	0x20
+  001F    0084    LD	0x4,A
+  0020    3053    LDIA	0x53
+  0021    27BA    CALL	0x7BA
+  0022    01FB    CLR	0x7B
+---- interrupt_function_enter ----------------------------------------------------------
+  0004    00FE    LD	0x7E,A
+  0005    0E03    SWAPA	0x3
+  0006    00F9    LD	0x79,A
+  0007    080A    LD	A,0xA
+  0008    00FA    LD	0x7A,A
+  0009    2C8F    JP	0x48F
+---- common_function ------------------------------------------------------------------
+  0023    0183    CLR	0x3
+  0024    2E7B    JP	0x67B
+  0025    00FF    LD	0x7F,A
+  0026    3000    LDIA	0x0
+  0027    008A    LD	0xA,A
+  0028    087F    LD	A,0x7F
+  0029    0782    ADDR	0x2
+  002A    282A    JP	0x2A
+  002B    2FB1    JP	0x7B1
+  002C    2F6A    JP	0x76A
+  002D    2D6F    JP	0x56F
+  012E    101B    CLRB	0x1B,0
+  012F    1683    SETB	0x3,5
+  0130    1186    CLRB	0x6,3
+  0131    1283    CLRB	0x3,5
+  0132    1186    CLRB	0x6,3
+  0133    0008    RET
+  0134    1283    CLRB	0x3,5
+  0135    01D3    CLR	0x53
+  0136    00D4    LD	0x54,A
+  0137    01D5    CLR	0x55
+  0138    0008    RET
+  022C    3002    LDIA	0x2
+  022D    1283    CLRB	0x3,5
+  022E    01D3    CLR	0x53
+  022F    00D4    LD	0x54,A
+  0230    01D5    CLR	0x55
+  0231    0008    RET
+  0290    1283    CLRB	0x3,5
+  0291    1505    SETB	0x5,2
+  0292    1683    SETB	0x3,5
+  0293    1105    CLRB	0x5,2
+  0294    0008    RET
+  048A    00D3    LD	0x53,A
+  048B    01D4    CLR	0x54
+  048C    01D5    CLR	0x55
+  048D    0AD5    INCR	0x55
+  048E    0008    RET
+  059A    01A2    CLR	0x22
+  059B    0AA2    INCR	0x22
+  059C    01A3    CLR	0x23
+  059D    01A4    CLR	0x24
+  059E    0008    RET
+  06EA    1283    CLRB	0x3,5
+  06EB    01CC    CLR	0x4C
+  06EC    01CB    CLR	0x4B
+  06ED    01CA    CLR	0x4A
+  06EE    0008    RET
+  07A8    30F8    LDIA	0xF8
+  07BA    0064    CLRWDT
+  07BB    0180    CLR	0x0
+  07BC    0A84    INCR	0x4
+  07BD    0604    XORA	0x4
+  07BE    1903    SZB	0x3,2
+  07BF    3400    RET	0x0
+  07C0    0604    XORA	0x4
+  07C1    2FBB    JP	0x7BB
+  07C2    3006    LDIA	0x6
+  07F0    1283    CLRB	0x3,5
+  07F1    00D3    LD	0x53,A
+  07F5    2F68    JP	0x768
+  07F6    2F67    JP	0x767
+  07F7    2F66    JP	0x766
+  07F8    2F69    JP	0x769

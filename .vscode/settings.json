@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "main.h": "c",
+        "app_motor.h": "c",
+        "app_process.h": "c",
+        "app_key.h": "c"
+    }
+}
