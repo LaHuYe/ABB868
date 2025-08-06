@@ -1,31 +1,31 @@
 Version 3.2 HI-TECH Software Intermediate Code
-"21 Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_motor.h
+"21 D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_motor.h
 [s S3 `uc 1 `uc 1 `uc 1 `uc 1 `uc 1 `uc 1 `uc 1 ]
 [n S3 . Period DutyLow DutyHigh normal_duty_change_value mid_duty_change_value time mid_duty ]
 "43
 [s S4 `ui 1 `ui 1 ]
 [n S4 . DutyLow Period ]
-"45 Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_process.h
+"45 D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_process.h
 [s S6 `uc 1 `uc 1 `ui 1 `uc 1 ]
 [n S6 . mode mode_out_put work_mode_count times ]
 "57
 [v _work_mode `S6 ~T0 @X0 0 e ]
-"6 Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_timer.h
+"6 D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_timer.h
 [s S8 `ui 1 `ul 1 `ui 1 `ui 1 ]
 [n S8 . mode_select_time work_updown_count work_change_count charge_to_oldmode_count ]
 "31
 [v _app_timer `S8 ~T0 @X0 0 e ]
-"59 Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_led.h
+"59 D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_led.h
 [v _app_led_mode_set `(v ~T0 @X0 0 ef ]
-"57 Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_motor.h
+"57 D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_motor.h
 [v _app_process_motor_duty `(v ~T0 @X0 0 ef ]
-"45 Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_motor.c
+"45 D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_motor.c
 [c E526 0 1 2 3 .. ]
 [n E526 . WORK_MODE_IDEL WORK_MODE_ONE WORK_MODE_TWO WORK_MODE_THREE  ]
 [; ;htc.h: 26: extern const char __xc8_OPTIM_SPEED;
 [; ;htc.h: 28: extern double __fpnormalize(double);
 [; ;xc8debug.h: 14: extern void __builtin_software_breakpoint(void);
-"10 F:\softWare\important\SCMCU_IDE_V2.00.15\data\include\SC8P171xE.h
+"10 E:\Software\SCMCU_IDE_V2.00.16\data\include\SC8P171xE.h
 [v _INDF `Vuc ~T0 @X0 1 e@0 ]
 [; ;SC8P171xE.h: 10: volatile unsigned char INDF @ 0x00;
 "11
@@ -948,7 +948,7 @@ Version 3.2 HI-TECH Software Intermediate Code
 [; ;main.h: 52: extern unsigned char CntSleep;
 [; ;main.h: 53: extern volatile unsigned char CntTime200us;
 [; ;main.h: 54: void GotoSleep(void);
-"12 Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_motor.c
+"12 D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_motor.c
 [v _low_a `uc ~T0 @X0 1 e ]
 [; ;app_motor.c: 12: unsigned char low_a;
 "13

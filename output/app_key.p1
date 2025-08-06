@@ -1,45 +1,40 @@
 Version 3.2 HI-TECH Software Intermediate Code
-"3 Z:\ÕýÔÚÑÐ·¢\37-°¬çê¶û\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x¸ÄºôÎüµÆ°æ±¾2\app_key.c
+"3 D:\Weiai\project\°¬çê¶û\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d¸ÄÎªºôÎüµÆ°æ±¾\app_key.c
 [c E424 0 1 2 3 4 5 6 7 .. ]
 [n E424 . KEY_TYPE_IDLE KEY_TYPE_DOWN KEY_TYPE_LONG KEY_TYPE_LONG_LONG KEY_TYPE_LONG_BIND KEY_TYPE_SHORT KEY_TYPE_LONG_RELEASE KEY_TYPE_LONG_LONG_RELEASE  ]
-"12 Z:\ÕýÔÚÑÐ·¢\37-°¬çê¶û\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x¸ÄºôÎüµÆ°æ±¾2\app_charge.h
+"12 D:\Weiai\project\°¬çê¶û\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d¸ÄÎªºôÎüµÆ°æ±¾\app_charge.h
 [s S2 :1 `uc 1 :1 `uc 1 :1 `uc 1 :1 `uc 1 :1 `uc 1 `uc 1 `uc 1 `ui 1 `uc 1 `uc 1 `uc 1 `uc 1 `ui 1 `ui 1 `ui 1 `ui 1 `uc 1 ]
 [n S2 . Charge FullCharge ForceFullCharge flag_charge_force_full_24hour Remind flag_led_remind flag_remind_delay_10s remind_delay_10s_timer low_bat_3V3 LowPower LowLed LowLed_cnt ChargeCnt DisChargeCnt ChargeFullCnt Old_to_Charge_cnt low_led_blink_cnt ]
 "33
 [v _app_charge `S2 ~T0 @X0 0 e ]
-"197 Z:\ÕýÔÚÑÐ·¢\37-°¬çê¶û\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x¸ÄºôÎüµÆ°æ±¾2\app_key.c
+"197 D:\Weiai\project\°¬çê¶û\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d¸ÄÎªºôÎüµÆ°æ±¾\app_key.c
 [c E511 0 1 2 3 4 5 .. ]
 [n E511 . WORK_STATE_POWEROFF WORK_STATE_WORKING WORK_STATE_CHARGING WORK_STATE_LOWBAT_LED WORK_STATE_OLD_MODE_RUN WORK_STATE_NULL  ]
-"56 Z:\ÕýÔÚÑÐ·¢\37-°¬çê¶û\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x¸ÄºôÎüµÆ°æ±¾2\app_process.h
+"56 D:\Weiai\project\°¬çê¶û\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d¸ÄÎªºôÎüµÆ°æ±¾\app_process.h
 [v _app_work_state `VE511 ~T0 @X0 0 e ]
 "72
 [v _app_process_set_work_state `(v ~T0 @X0 0 ef1`E511 ]
-"59 Z:\ÕýÔÚÑÐ·¢\37-°¬çê¶û\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x¸ÄºôÎüµÆ°æ±¾2\app_motor.h
+"59 D:\Weiai\project\°¬çê¶û\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d¸ÄÎªºôÎüµÆ°æ±¾\app_motor.h
 [v _app_process_set_mode_init `(v ~T0 @X0 0 ef ]
-"6 Z:\ÕýÔÚÑÐ·¢\37-°¬çê¶û\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x¸ÄºôÎüµÆ°æ±¾2\app_timer.h
-[s S8 `ui 1 `ul 1 `ui 1 `ui 1 ]
-[n S8 . mode_select_time work_updown_count work_change_count charge_to_oldmode_count ]
-"31
-[v _app_timer `S8 ~T0 @X0 0 e ]
-"60 Z:\ÕýÔÚÑÐ·¢\37-°¬çê¶û\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x¸ÄºôÎüµÆ°æ±¾2\app_motor.h
-[v _app_process_set_mode_next `(v ~T0 @X0 0 ef ]
-"211 Z:\ÕýÔÚÑÐ·¢\37-°¬çê¶û\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x¸ÄºôÎüµÆ°æ±¾2\app_key.c
+"211 D:\Weiai\project\°¬çê¶û\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d¸ÄÎªºôÎüµÆ°æ±¾\app_key.c
 [c E551 0 1 2 3 4 .. ]
 [n E551 . WATER_WORK_STATE_POWEROFF WATER_WORK_STATE_WORKING WATER_WORK_STATE_CHARGING WATER_WORK_STATE_MODE_LED WATER_WORK_STATE_NULL  ]
-"36 Z:\ÕýÔÚÑÐ·¢\37-°¬çê¶û\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x¸ÄºôÎüµÆ°æ±¾2\app_water_process.h
+"36 D:\Weiai\project\°¬çê¶û\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d¸ÄÎªºôÎüµÆ°æ±¾\app_water_process.h
 [v _water_work_state `VE551 ~T0 @X0 0 e ]
-"39
+"60 D:\Weiai\project\°¬çê¶û\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d¸ÄÎªºôÎüµÆ°æ±¾\app_motor.h
+[v _app_process_set_mode_next `(v ~T0 @X0 0 ef ]
+"39 D:\Weiai\project\°¬çê¶û\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d¸ÄÎªºôÎüµÆ°æ±¾\app_water_process.h
 [v _app_process_set_water_state `(v ~T0 @X0 0 ef1`E551 ]
-"60 Z:\ÕýÔÚÑÐ·¢\37-°¬çê¶û\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x¸ÄºôÎüµÆ°æ±¾2\app_led.h
+"60 D:\Weiai\project\°¬çê¶û\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d¸ÄÎªºôÎüµÆ°æ±¾\app_led.h
 [v _app_led_water_mode_set `(v ~T0 @X0 0 ef ]
-"43 Z:\ÕýÔÚÑÐ·¢\37-°¬çê¶û\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x¸ÄºôÎüµÆ°æ±¾2\app_water_process.h
+"43 D:\Weiai\project\°¬çê¶û\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d¸ÄÎªºôÎüµÆ°æ±¾\app_water_process.h
 [v _water_motor `(v ~T0 @X0 0 ef ]
 "41
 [v _app_process_set_water_mode_next `(v ~T0 @X0 0 ef ]
 [; ;htc.h: 26: extern const char __xc8_OPTIM_SPEED;
 [; ;htc.h: 28: extern double __fpnormalize(double);
 [; ;xc8debug.h: 14: extern void __builtin_software_breakpoint(void);
-"10 F:\softWare\important\SCMCU_IDE_V2.00.15\data\include\SC8P171xE.h
+"10 E:\Software\SCMCU_IDE_V2.00.16\data\include\SC8P171xE.h
 [v _INDF `Vuc ~T0 @X0 1 e@0 ]
 [; ;SC8P171xE.h: 10: volatile unsigned char INDF @ 0x00;
 "11
@@ -962,7 +957,7 @@ Version 3.2 HI-TECH Software Intermediate Code
 [; ;main.h: 52: extern unsigned char CntSleep;
 [; ;main.h: 53: extern volatile unsigned char CntTime200us;
 [; ;main.h: 54: void GotoSleep(void);
-"3 Z:\ÕýÔÚÑÐ·¢\37-°¬çê¶û\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x¸ÄºôÎüµÆ°æ±¾2\app_key.c
+"3 D:\Weiai\project\°¬çê¶û\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d¸ÄÎªºôÎüµÆ°æ±¾\app_key.c
 [v _key_brush_pwrtype `E424 ~T0 @X0 1 e ]
 [i _key_brush_pwrtype
 . `E424 0
@@ -1466,34 +1461,15 @@ Version 3.2 HI-TECH Software Intermediate Code
 [; ;app_key.c: 204: {
 "204
 {
-[; ;app_key.c: 205: if (app_timer.work_updown_count)
-"205
-[e $ ! != . _app_timer 1 -> -> 0 `i `ul 48  ]
-[; ;app_key.c: 206: {
-"206
-{
-[; ;app_key.c: 207: app_process_set_mode_next();
-"207
-[e ( _app_process_set_mode_next ..  ]
-"208
-}
-[; ;app_key.c: 208: }
-[e $U 49  ]
-"209
-[e :U 48 ]
-[; ;app_key.c: 209: else
-[; ;app_key.c: 210: {
-"210
-{
 [; ;app_key.c: 211: if (water_work_state == WATER_WORK_STATE_POWEROFF)
 "211
-[e $ ! == -> _water_work_state `i -> . `E551 0 `i 50  ]
+[e $ ! == -> _water_work_state `i -> . `E551 0 `i 48  ]
 [; ;app_key.c: 212: {
 "212
 {
 [; ;app_key.c: 213: if (app_charge.Remind)
 "213
-[e $ ! != -> . _app_charge 4 `i -> -> -> 0 `i `uc `i 51  ]
+[e $ ! != -> . _app_charge 4 `i -> -> -> 0 `i `uc `i 49  ]
 [; ;app_key.c: 214: {
 "214
 {
@@ -1505,331 +1481,291 @@ Version 3.2 HI-TECH Software Intermediate Code
 [e = . _app_charge 7 -> -> 0 `i `ui ]
 "217
 }
-[e :U 51 ]
+[e :U 49 ]
 "218
 }
-[e :U 50 ]
+[e :U 48 ]
 [; ;app_key.c: 217: }
 [; ;app_key.c: 218: }
 [; ;app_key.c: 219: app_process_set_work_state(WORK_STATE_POWEROFF);
 "219
 [e ( _app_process_set_work_state (1 . `E511 0 ]
-"220
-}
-[e :U 49 ]
 "221
 }
 [e :U 47 ]
 "222
 [e :U 46 ]
-[; ;app_key.c: 220: }
 [; ;app_key.c: 221: }
 [; ;app_key.c: 222: break;
 [e $U 42  ]
 [; ;app_key.c: 224: case KEY_TYPE_LONG:
 "224
-[e :U 52 ]
-[; ;app_key.c: 225: if (app_work_state == WORK_STATE_WORKING)
-"225
-[e $ ! == -> _app_work_state `i -> . `E511 1 `i 53  ]
-[; ;app_key.c: 226: {
-"226
-{
-[; ;app_key.c: 227: if (water_work_state == WATER_WORK_STATE_POWEROFF)
-"227
-[e $ ! == -> _water_work_state `i -> . `E551 0 `i 54  ]
-[; ;app_key.c: 228: {
-"228
-{
-[; ;app_key.c: 229: if (app_charge.Remind)
-"229
-[e $ ! != -> . _app_charge 4 `i -> -> -> 0 `i `uc `i 55  ]
-[; ;app_key.c: 230: {
-"230
-{
-[; ;app_key.c: 231: app_charge.flag_remind_delay_10s = 1;
-"231
-[e = . _app_charge 6 -> -> 1 `i `uc ]
-[; ;app_key.c: 232: app_charge.remind_delay_10s_timer = 0;
-"232
-[e = . _app_charge 7 -> -> 0 `i `ui ]
-"233
-}
-[e :U 55 ]
-"234
-}
-[e :U 54 ]
-[; ;app_key.c: 233: }
-[; ;app_key.c: 234: }
-[; ;app_key.c: 235: app_process_set_work_state(WORK_STATE_POWEROFF);
-"235
-[e ( _app_process_set_work_state (1 . `E511 0 ]
-"236
-}
-[e :U 53 ]
-[; ;app_key.c: 236: }
-[; ;app_key.c: 237: break;
+[e :U 50 ]
+[; ;app_key.c: 237: app_process_set_mode_next();
 "237
-[e $U 42  ]
-[; ;app_key.c: 238: default:
+[e ( _app_process_set_mode_next ..  ]
+[; ;app_key.c: 238: break;
 "238
-[e :U 56 ]
-[; ;app_key.c: 239: break;
-"239
 [e $U 42  ]
+[; ;app_key.c: 239: default:
+"239
+[e :U 51 ]
+[; ;app_key.c: 240: break;
 "240
+[e $U 42  ]
+"241
 }
-[; ;app_key.c: 240: }
+[; ;app_key.c: 241: }
 [e $U 42  ]
 "194
 [e :U 43 ]
 [e [\ _key_brush_pwrtype , $ . `E424 5 44
- , $ . `E424 2 52
- 56 ]
-"240
-[e :U 42 ]
-[; ;app_key.c: 241: key_brush_pwrtype = KEY_TYPE_IDLE;
+ , $ . `E424 2 50
+ 51 ]
 "241
-[e = _key_brush_pwrtype . `E424 0 ]
-[; ;app_key.c: 242: }
+[e :U 42 ]
+[; ;app_key.c: 242: key_brush_pwrtype = KEY_TYPE_IDLE;
 "242
+[e = _key_brush_pwrtype . `E424 0 ]
+[; ;app_key.c: 243: }
+"243
 [e :UE 41 ]
 }
-"244
-[v _handle_key_water `(v ~T0 @X0 1 ef ]
 "245
+[v _handle_key_water `(v ~T0 @X0 1 ef ]
+"246
 {
-[; ;app_key.c: 244: void handle_key_water()
-[; ;app_key.c: 245: {
+[; ;app_key.c: 245: void handle_key_water()
+[; ;app_key.c: 246: {
 [e :U _handle_key_water ]
 [f ]
-[; ;app_key.c: 246: switch (key_water_pwr_type)
-"246
-[e $U 59  ]
-[; ;app_key.c: 247: {
+[; ;app_key.c: 247: switch (key_water_pwr_type)
 "247
-{
-[; ;app_key.c: 248: case KEY_TYPE_SHORT:
+[e $U 54  ]
+[; ;app_key.c: 248: {
 "248
-[e :U 60 ]
-[; ;app_key.c: 249: if (water_work_state == WATER_WORK_STATE_WORKING)
+{
+[; ;app_key.c: 249: case KEY_TYPE_SHORT:
 "249
-[e $ ! == -> _water_work_state `i -> . `E551 1 `i 61  ]
-[; ;app_key.c: 250: {
+[e :U 55 ]
+[; ;app_key.c: 250: if (water_work_state == WATER_WORK_STATE_WORKING)
 "250
-{
-[; ;app_key.c: 251: if (app_work_state == WORK_STATE_POWEROFF)
+[e $ ! == -> _water_work_state `i -> . `E551 1 `i 56  ]
+[; ;app_key.c: 251: {
 "251
-[e $ ! == -> _app_work_state `i -> . `E511 0 `i 62  ]
-[; ;app_key.c: 252: {
+{
+[; ;app_key.c: 252: if (app_work_state == WORK_STATE_POWEROFF)
 "252
-{
-[; ;app_key.c: 253: if (app_charge.Remind)
+[e $ ! == -> _app_work_state `i -> . `E511 0 `i 57  ]
+[; ;app_key.c: 253: {
 "253
-[e $ ! != -> . _app_charge 4 `i -> -> -> 0 `i `uc `i 63  ]
-[; ;app_key.c: 254: {
-"254
 {
-[; ;app_key.c: 255: app_charge.flag_remind_delay_10s = 1;
+[; ;app_key.c: 254: if (app_charge.Remind)
+"254
+[e $ ! != -> . _app_charge 4 `i -> -> -> 0 `i `uc `i 58  ]
+[; ;app_key.c: 255: {
 "255
-[e = . _app_charge 6 -> -> 1 `i `uc ]
-[; ;app_key.c: 256: app_charge.remind_delay_10s_timer = 0;
+{
+[; ;app_key.c: 256: app_charge.flag_remind_delay_10s = 1;
 "256
-[e = . _app_charge 7 -> -> 0 `i `ui ]
+[e = . _app_charge 6 -> -> 1 `i `uc ]
+[; ;app_key.c: 257: app_charge.remind_delay_10s_timer = 0;
 "257
-}
-[e :U 63 ]
+[e = . _app_charge 7 -> -> 0 `i `ui ]
 "258
 }
-[e :U 62 ]
-[; ;app_key.c: 257: }
-[; ;app_key.c: 258: }
-[; ;app_key.c: 259: app_process_set_water_state(WATER_WORK_STATE_POWEROFF);
-"259
-[e ( _app_process_set_water_state (1 . `E551 0 ]
-"260
-}
-[; ;app_key.c: 260: }
-[e $U 64  ]
-"261
-[e :U 61 ]
-[; ;app_key.c: 261: else if (water_work_state == WATER_WORK_STATE_POWEROFF || app_charge.flag_remind_delay_10s || water_work_state == WATER_WORK_STATE_MODE_LED)
-[e $ ! || || == -> _water_work_state `i -> . `E551 0 `i != -> . _app_charge 6 `i -> -> -> 0 `i `uc `i == -> _water_work_state `i -> . `E551 3 `i 65  ]
-[; ;app_key.c: 262: {
-"262
-{
-[; ;app_key.c: 263: app_charge.flag_remind_delay_10s = 0;
-"263
-[e = . _app_charge 6 -> -> 0 `i `uc ]
-[; ;app_key.c: 264: app_led_water_mode_set();
-"264
-[e ( _app_led_water_mode_set ..  ]
-[; ;app_key.c: 265: water_motor();
-"265
-[e ( _water_motor ..  ]
-[; ;app_key.c: 266: app_process_set_water_state(WATER_WORK_STATE_WORKING);
-"266
-[e ( _app_process_set_water_state (1 . `E551 1 ]
-"267
-}
-[e :U 65 ]
-"268
-[e :U 64 ]
-[; ;app_key.c: 267: }
-[; ;app_key.c: 268: key_water_pwr_type = KEY_TYPE_IDLE;
-[e = _key_water_pwr_type . `E424 0 ]
-[; ;app_key.c: 269: break;
-"269
-[e $U 58  ]
-[; ;app_key.c: 271: default:
-"271
-[e :U 66 ]
-[; ;app_key.c: 272: break;
-"272
-[e $U 58  ]
-"273
-}
-[; ;app_key.c: 273: }
-[e $U 58  ]
-"246
-[e :U 59 ]
-[e [\ _key_water_pwr_type , $ . `E424 5 60
- 66 ]
-"273
 [e :U 58 ]
-[; ;app_key.c: 274: key_water_pwr_type = KEY_TYPE_IDLE;
-"274
-[e = _key_water_pwr_type . `E424 0 ]
-[; ;app_key.c: 276: switch (key_water_mode_type)
-"276
-[e $U 68  ]
-[; ;app_key.c: 277: {
-"277
+"259
+}
+[e :U 57 ]
+[; ;app_key.c: 258: }
+[; ;app_key.c: 259: }
+[; ;app_key.c: 260: app_process_set_water_state(WATER_WORK_STATE_POWEROFF);
+"260
+[e ( _app_process_set_water_state (1 . `E551 0 ]
+"261
+}
+[; ;app_key.c: 261: }
+[e $U 59  ]
+"262
+[e :U 56 ]
+[; ;app_key.c: 262: else if (water_work_state == WATER_WORK_STATE_POWEROFF || app_charge.flag_remind_delay_10s || water_work_state == WATER_WORK_STATE_MODE_LED)
+[e $ ! || || == -> _water_work_state `i -> . `E551 0 `i != -> . _app_charge 6 `i -> -> -> 0 `i `uc `i == -> _water_work_state `i -> . `E551 3 `i 60  ]
+[; ;app_key.c: 263: {
+"263
 {
-[; ;app_key.c: 278: case KEY_TYPE_SHORT:
-"278
-[e :U 69 ]
-[; ;app_key.c: 279: if (water_work_state == WATER_WORK_STATE_WORKING)
-"279
-[e $ ! == -> _water_work_state `i -> . `E551 1 `i 70  ]
-[; ;app_key.c: 280: {
-"280
-{
-[; ;app_key.c: 281: app_process_set_water_mode_next();
-"281
-[e ( _app_process_set_water_mode_next ..  ]
-[; ;app_key.c: 282: app_led_water_mode_set();
-"282
+[; ;app_key.c: 264: app_charge.flag_remind_delay_10s = 0;
+"264
+[e = . _app_charge 6 -> -> 0 `i `uc ]
+[; ;app_key.c: 265: app_led_water_mode_set();
+"265
 [e ( _app_led_water_mode_set ..  ]
-[; ;app_key.c: 283: water_motor();
-"283
+[; ;app_key.c: 266: water_motor();
+"266
 [e ( _water_motor ..  ]
-"284
+[; ;app_key.c: 267: app_process_set_water_state(WATER_WORK_STATE_WORKING);
+"267
+[e ( _app_process_set_water_state (1 . `E551 1 ]
+"268
 }
-[; ;app_key.c: 284: }
-[e $U 71  ]
-"285
-[e :U 70 ]
-[; ;app_key.c: 285: else if (water_work_state == WATER_WORK_STATE_POWEROFF)
-[e $ ! == -> _water_work_state `i -> . `E551 0 `i 72  ]
-[; ;app_key.c: 286: {
-"286
-{
-[; ;app_key.c: 287: app_process_set_water_state(WATER_WORK_STATE_MODE_LED);
-"287
-[e ( _app_process_set_water_state (1 . `E551 3 ]
-[; ;app_key.c: 288: app_led_water_mode_set();
-"288
-[e ( _app_led_water_mode_set ..  ]
-"289
+[e :U 60 ]
+"269
+[e :U 59 ]
+[; ;app_key.c: 268: }
+[; ;app_key.c: 269: key_water_pwr_type = KEY_TYPE_IDLE;
+[e = _key_water_pwr_type . `E424 0 ]
+[; ;app_key.c: 270: break;
+"270
+[e $U 53  ]
+[; ;app_key.c: 272: default:
+"272
+[e :U 61 ]
+[; ;app_key.c: 273: break;
+"273
+[e $U 53  ]
+"274
 }
-[; ;app_key.c: 289: }
-[e $U 73  ]
-"290
-[e :U 72 ]
-[; ;app_key.c: 290: else if (water_work_state == WATER_WORK_STATE_MODE_LED)
-[e $ ! == -> _water_work_state `i -> . `E551 3 `i 74  ]
-[; ;app_key.c: 291: {
-"291
+[; ;app_key.c: 274: }
+[e $U 53  ]
+"247
+[e :U 54 ]
+[e [\ _key_water_pwr_type , $ . `E424 5 55
+ 61 ]
+"274
+[e :U 53 ]
+[; ;app_key.c: 275: key_water_pwr_type = KEY_TYPE_IDLE;
+"275
+[e = _key_water_pwr_type . `E424 0 ]
+[; ;app_key.c: 277: switch (key_water_mode_type)
+"277
+[e $U 63  ]
+[; ;app_key.c: 278: {
+"278
 {
-[; ;app_key.c: 292: app_process_set_water_state(WATER_WORK_STATE_MODE_LED);
-"292
-[e ( _app_process_set_water_state (1 . `E551 3 ]
-[; ;app_key.c: 293: app_process_set_water_mode_next();
-"293
+[; ;app_key.c: 279: case KEY_TYPE_SHORT:
+"279
+[e :U 64 ]
+[; ;app_key.c: 280: if (water_work_state == WATER_WORK_STATE_WORKING)
+"280
+[e $ ! == -> _water_work_state `i -> . `E551 1 `i 65  ]
+[; ;app_key.c: 281: {
+"281
+{
+[; ;app_key.c: 282: app_process_set_water_mode_next();
+"282
 [e ( _app_process_set_water_mode_next ..  ]
-[; ;app_key.c: 294: app_led_water_mode_set();
-"294
+[; ;app_key.c: 283: app_led_water_mode_set();
+"283
 [e ( _app_led_water_mode_set ..  ]
-"295
+[; ;app_key.c: 284: water_motor();
+"284
+[e ( _water_motor ..  ]
+"285
 }
-[e :U 74 ]
-"296
-[e :U 73 ]
-[e :U 71 ]
-[; ;app_key.c: 295: }
-[; ;app_key.c: 296: key_water_mode_type = KEY_TYPE_IDLE;
-[e = _key_water_mode_type . `E424 0 ]
-[; ;app_key.c: 297: break;
-"297
-[e $U 67  ]
-[; ;app_key.c: 298: case KEY_TYPE_LONG:
-"298
-[e :U 75 ]
-[; ;app_key.c: 301: break;
-"301
-[e $U 67  ]
-[; ;app_key.c: 302: default:
-"302
-[e :U 76 ]
-[; ;app_key.c: 303: break;
-"303
-[e $U 67  ]
-"304
-}
-[; ;app_key.c: 304: }
-[e $U 67  ]
-"276
-[e :U 68 ]
-[e [\ _key_water_mode_type , $ . `E424 5 69
- , $ . `E424 2 75
- 76 ]
-"304
-[e :U 67 ]
-[; ;app_key.c: 305: key_water_mode_type = KEY_TYPE_IDLE;
-"305
-[e = _key_water_mode_type . `E424 0 ]
-[; ;app_key.c: 306: }
-"306
-[e :UE 57 ]
-}
-"308
-[v _app_process_key `(v ~T0 @X0 1 ef ]
-"309
+[; ;app_key.c: 285: }
+[e $U 66  ]
+"286
+[e :U 65 ]
+[; ;app_key.c: 286: else if (water_work_state == WATER_WORK_STATE_POWEROFF)
+[e $ ! == -> _water_work_state `i -> . `E551 0 `i 67  ]
+[; ;app_key.c: 287: {
+"287
 {
-[; ;app_key.c: 308: void app_process_key()
-[; ;app_key.c: 309: {
+[; ;app_key.c: 288: app_process_set_water_state(WATER_WORK_STATE_MODE_LED);
+"288
+[e ( _app_process_set_water_state (1 . `E551 3 ]
+[; ;app_key.c: 289: app_led_water_mode_set();
+"289
+[e ( _app_led_water_mode_set ..  ]
+"290
+}
+[; ;app_key.c: 290: }
+[e $U 68  ]
+"291
+[e :U 67 ]
+[; ;app_key.c: 291: else if (water_work_state == WATER_WORK_STATE_MODE_LED)
+[e $ ! == -> _water_work_state `i -> . `E551 3 `i 69  ]
+[; ;app_key.c: 292: {
+"292
+{
+[; ;app_key.c: 293: app_process_set_water_state(WATER_WORK_STATE_MODE_LED);
+"293
+[e ( _app_process_set_water_state (1 . `E551 3 ]
+[; ;app_key.c: 294: app_process_set_water_mode_next();
+"294
+[e ( _app_process_set_water_mode_next ..  ]
+[; ;app_key.c: 295: app_led_water_mode_set();
+"295
+[e ( _app_led_water_mode_set ..  ]
+"296
+}
+[e :U 69 ]
+"297
+[e :U 68 ]
+[e :U 66 ]
+[; ;app_key.c: 296: }
+[; ;app_key.c: 297: key_water_mode_type = KEY_TYPE_IDLE;
+[e = _key_water_mode_type . `E424 0 ]
+[; ;app_key.c: 298: break;
+"298
+[e $U 62  ]
+[; ;app_key.c: 299: case KEY_TYPE_LONG:
+"299
+[e :U 70 ]
+[; ;app_key.c: 302: break;
+"302
+[e $U 62  ]
+[; ;app_key.c: 303: default:
+"303
+[e :U 71 ]
+[; ;app_key.c: 304: break;
+"304
+[e $U 62  ]
+"305
+}
+[; ;app_key.c: 305: }
+[e $U 62  ]
+"277
+[e :U 63 ]
+[e [\ _key_water_mode_type , $ . `E424 5 64
+ , $ . `E424 2 70
+ 71 ]
+"305
+[e :U 62 ]
+[; ;app_key.c: 306: key_water_mode_type = KEY_TYPE_IDLE;
+"306
+[e = _key_water_mode_type . `E424 0 ]
+[; ;app_key.c: 307: }
+"307
+[e :UE 52 ]
+}
+"309
+[v _app_process_key `(v ~T0 @X0 1 ef ]
+"310
+{
+[; ;app_key.c: 309: void app_process_key()
+[; ;app_key.c: 310: {
 [e :U _app_process_key ]
 [f ]
-[; ;app_key.c: 310: key_brush_pwr_check();
-"310
-[e ( _key_brush_pwr_check ..  ]
-[; ;app_key.c: 311: key_water_pwr_check();
+[; ;app_key.c: 311: key_brush_pwr_check();
 "311
-[e ( _key_water_pwr_check ..  ]
-[; ;app_key.c: 312: key_water_mode_check();
+[e ( _key_brush_pwr_check ..  ]
+[; ;app_key.c: 312: key_water_pwr_check();
 "312
-[e ( _key_water_mode_check ..  ]
-[; ;app_key.c: 313: charge_or_lowBat_check();
+[e ( _key_water_pwr_check ..  ]
+[; ;app_key.c: 313: key_water_mode_check();
 "313
-[e ( _charge_or_lowBat_check ..  ]
-[; ;app_key.c: 314: handle_key_pwr();
+[e ( _key_water_mode_check ..  ]
+[; ;app_key.c: 314: charge_or_lowBat_check();
 "314
-[e ( _handle_key_pwr ..  ]
-[; ;app_key.c: 315: handle_key_water();
+[e ( _charge_or_lowBat_check ..  ]
+[; ;app_key.c: 315: handle_key_pwr();
 "315
-[e ( _handle_key_water ..  ]
-[; ;app_key.c: 316: }
+[e ( _handle_key_pwr ..  ]
+[; ;app_key.c: 316: handle_key_water();
 "316
-[e :UE 77 ]
+[e ( _handle_key_water ..  ]
+[; ;app_key.c: 317: }
+"317
+[e :UE 72 ]
 }

@@ -1,31 +1,31 @@
 Version 3.2 HI-TECH Software Intermediate Code
-"12 Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_charge.h
+"12 D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_charge.h
 [s S2 :1 `uc 1 :1 `uc 1 :1 `uc 1 :1 `uc 1 :1 `uc 1 `uc 1 `uc 1 `ui 1 `uc 1 `uc 1 `uc 1 `uc 1 `ui 1 `ui 1 `ui 1 `ui 1 `uc 1 ]
 [n S2 . Charge FullCharge ForceFullCharge flag_charge_force_full_24hour Remind flag_led_remind flag_remind_delay_10s remind_delay_10s_timer low_bat_3V3 LowPower LowLed LowLed_cnt ChargeCnt DisChargeCnt ChargeFullCnt Old_to_Charge_cnt low_led_blink_cnt ]
 [v F420 `(v ~T0 @X0 1 tf1`ul ]
-"150 F:\softWare\important\SCMCU_IDE_V2.00.15\data\include\sc.h
+"150 E:\Software\SCMCU_IDE_V2.00.16\data\include\sc.h
 [v __delay `JF420 ~T0 @X0 0 e ]
 [p i __delay ]
-"43 Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_adc.h
+"43 D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_adc.h
 [v _AdcResultChk `(ui ~T0 @X0 0 ef2`uc`uc ]
-"88 Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_charge.c
+"88 D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_charge.c
 [c E591 0 1 2 4 8 16 32 64 128 256 512 1024 2048 4096 8192 16384 32768 65536 50176 224 50400 50400 131072 262144 255 .. ]
 [n E591 . LED_INDEX_NULL LED_INDEX_1 LED_INDEX_2 LED_INDEX_3 LED_INDEX_4 LED_INDEX_5 LED_INDEX_6 LED_INDEX_7 LED_INDEX_8 LED_INDEX_9 LED_INDEX_10 LED_INDEX_11 LED_INDEX_12 LED_INDEX_13 LED_INDEX_14 LED_INDEX_15 LED_INDEX_16 LED_INDEX_17 LED_INDEX_BRUSH_LOW LED_INDEX_BRUSH_MID LED_INDEX_BRUSH_HIGH LED_INDEX_BRUSH_OFF LED_INDEX_18 LED_INDEX_19 LED_INDEX_ALL  ]
 [c E587 0 1 .. ]
 [n E587 . LED_STATE_OFF LED_STATE_ON  ]
-"62 Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_led.h
+"62 D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_led.h
 [v _set_led_state `(v ~T0 @X0 0 ef2`E591`E587 ]
-"90 Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_charge.c
+"90 D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_charge.c
 [c E511 0 1 2 3 4 5 .. ]
 [n E511 . WORK_STATE_POWEROFF WORK_STATE_WORKING WORK_STATE_CHARGING WORK_STATE_LOWBAT_LED WORK_STATE_OLD_MODE_RUN WORK_STATE_NULL  ]
-"72 Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_process.h
+"72 D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_process.h
 [v _app_process_set_work_state `(v ~T0 @X0 0 ef1`E511 ]
-"47 Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_adc.h
+"47 D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_adc.h
 [v _adresultvdd `Vui ~T0 @X0 0 e ]
 [; ;htc.h: 26: extern const char __xc8_OPTIM_SPEED;
 [; ;htc.h: 28: extern double __fpnormalize(double);
 [; ;xc8debug.h: 14: extern void __builtin_software_breakpoint(void);
-"10 F:\softWare\important\SCMCU_IDE_V2.00.15\data\include\SC8P171xE.h
+"10 E:\Software\SCMCU_IDE_V2.00.16\data\include\SC8P171xE.h
 [v _INDF `Vuc ~T0 @X0 1 e@0 ]
 [; ;SC8P171xE.h: 10: volatile unsigned char INDF @ 0x00;
 "11
@@ -948,7 +948,7 @@ Version 3.2 HI-TECH Software Intermediate Code
 [; ;main.h: 52: extern unsigned char CntSleep;
 [; ;main.h: 53: extern volatile unsigned char CntTime200us;
 [; ;main.h: 54: void GotoSleep(void);
-"4 Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_charge.c
+"4 D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_charge.c
 [v _app_charge `S2 ~T0 @X0 1 e ]
 [i _app_charge
 :U ..

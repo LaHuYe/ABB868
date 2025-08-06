@@ -1,17 +1,17 @@
 
-# 1 "Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_adc.c"
+# 1 "D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_adc.c"
 
-# 26 "F:\softWare\important\SCMCU_IDE_V2.00.15\data\include\htc.h"
+# 26 "E:\Software\SCMCU_IDE_V2.00.16\data\include\htc.h"
 extern const char __xc8_OPTIM_SPEED;
 
 extern double __fpnormalize(double);
 
 
-# 13 "F:\softWare\important\SCMCU_IDE_V2.00.15\data\include\xc8debug.h"
+# 13 "E:\Software\SCMCU_IDE_V2.00.16\data\include\xc8debug.h"
 #pragma intrinsic(__builtin_software_breakpoint)
 extern void __builtin_software_breakpoint(void);
 
-# 10 "F:\softWare\important\SCMCU_IDE_V2.00.15\data\include\SC8P171xE.h"
+# 10 "E:\Software\SCMCU_IDE_V2.00.16\data\include\SC8P171xE.h"
 volatile unsigned char INDF @ 0x00;
 volatile unsigned char TMR0 @ 0x01;
 volatile unsigned char PCL @ 0x02;
@@ -309,7 +309,7 @@ volatile bit LDOEN @ ((unsigned)&ADCON1*8)+2;
 volatile bit LDOSEL @ ((unsigned)&ADCON1*8)+0;
 
 
-# 27 "F:\softWare\important\SCMCU_IDE_V2.00.15\data\include\sc.h"
+# 27 "E:\Software\SCMCU_IDE_V2.00.16\data\include\sc.h"
 #pragma intrinsic(__nop)
 extern void __nop(void);
 
@@ -326,7 +326,7 @@ extern unsigned char __resetbits;
 extern __bit __powerdown;
 extern __bit __timeout;
 
-# 5 "Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_key.h"
+# 5 "D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_key.h"
 typedef enum
 {
 KEY_TYPE_IDLE = 0,
@@ -363,7 +363,7 @@ extern volatile unsigned char KeyRelaxCnt2;
 
 void app_process_key(void);
 
-# 38 "Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_adc.h"
+# 38 "D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_adc.h"
 extern volatile unsigned char BatStates;
 extern volatile unsigned char motor_lock_cnt;
 
@@ -376,7 +376,7 @@ void MotorAdcIChk(void);
 extern volatile unsigned int adresultvdd;
 extern volatile unsigned int adresultvdd_back;
 
-# 11 "Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_charge.h"
+# 11 "D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_charge.h"
 typedef struct
 {
 unsigned char Charge : 1 ;
@@ -408,7 +408,7 @@ extern bit flag_discharge_once;
 void app_process_charge(void);
 void ChargePwmOut(unsigned char Duty);
 
-# 20 "Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_motor.h"
+# 20 "D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_motor.h"
 typedef struct
 {
 unsigned char Period;
@@ -451,7 +451,7 @@ void app_process_motor_duty(void);
 void app_process_set_mode_init(void);
 void app_process_set_mode_next(void);
 
-# 6 "Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_process.h"
+# 6 "D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_process.h"
 extern bit flag_old_mode;
 
 typedef enum
@@ -511,7 +511,7 @@ void app_process_work(void);
 void app_process_go_to_sleep(void);
 void turn_off(void);
 
-# 5 "Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_water_process.h"
+# 5 "D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_water_process.h"
 typedef enum
 {
 WATER_WORK_STATE_POWEROFF = 0,
@@ -554,7 +554,7 @@ void water_motor(void);
 void app_water_process_work(void);
 void water_turn_off();
 
-# 12 "Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_led.h"
+# 12 "D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_led.h"
 typedef enum
 {
 LED_STATE_OFF = 0,
@@ -606,7 +606,7 @@ extern unsigned int CntLedFlash;
 
 void led_pwm();
 
-# 5 "Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_timer.h"
+# 5 "D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_timer.h"
 typedef struct
 {
 unsigned int mode_select_time;
@@ -643,13 +643,13 @@ void update_change_updown_timing(unsigned int counts);
 void work_chang_timing();
 void oldmodeCountDownOff();
 
-# 51 "Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\main.h"
+# 51 "D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\main.h"
 extern volatile bit Flag_10ms;
 extern unsigned char CntSleep;
 extern volatile unsigned char CntTime200us;
 void GotoSleep(void);
 
-# 4 "Z:\正在研发\37-艾珀尔\4-ABB868\CODE\ABB868_V3_SC8P1712E_20241223_0x改呼吸灯版本2\app_adc.c"
+# 4 "D:\Weiai\project\艾珀尔\ABB868\ABB868_V4_SC8P1712E_20250310_0xf33d改为呼吸灯版本\app_adc.c"
 volatile unsigned int adresult;
 volatile unsigned long adsum;
 volatile unsigned int admin,admax;

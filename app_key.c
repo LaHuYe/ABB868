@@ -32,7 +32,7 @@ void key_brush_pwr_check()
 		// {
 		// 	key_brush_pwrtype = KEY_TYPE_LONG;
 		// }
-		if(KeyPressCnt1 == 100)  //长按5s
+		if(KeyPressCnt1 == 100)  //长按1s
 		{	
 			KeyPressCnt1 = 101;
 			//如果第二个按键没按下，这里有效
@@ -202,12 +202,12 @@ void handle_key_pwr()
 		}
 		else if (app_work_state == WORK_STATE_WORKING)
 		{
-			if (app_timer.work_updown_count)
-			{
-				app_process_set_mode_next();
-			}
-	 		else
-			{
+			// if (app_timer.work_updown_count)
+			// {
+			// 	app_process_set_mode_next();
+			// }
+	 		// else
+			// {
 				if (water_work_state == WATER_WORK_STATE_POWEROFF)
 				{
 					if (app_charge.Remind)
@@ -217,23 +217,24 @@ void handle_key_pwr()
 					}
 				}
 				app_process_set_work_state(WORK_STATE_POWEROFF);
-			}
+			// }
 		}
         break;
 		
     case KEY_TYPE_LONG:
-		if (app_work_state == WORK_STATE_WORKING)
-		{
-			if (water_work_state == WATER_WORK_STATE_POWEROFF)
-			{
-				if (app_charge.Remind)
-				{
-					app_charge.flag_remind_delay_10s = 1;
-					app_charge.remind_delay_10s_timer = 0;
-				}
-			}
-			app_process_set_work_state(WORK_STATE_POWEROFF);
-		}
+		// if (app_work_state == WORK_STATE_WORKING)
+		// {
+		// 	if (water_work_state == WATER_WORK_STATE_POWEROFF)
+		// 	{
+		// 		if (app_charge.Remind)
+		// 		{
+		// 			app_charge.flag_remind_delay_10s = 1;
+		// 			app_charge.remind_delay_10s_timer = 0;
+		// 		}
+		// 	}
+		// 	app_process_set_work_state(WORK_STATE_POWEROFF);
+		// }
+        app_process_set_mode_next();
         break;
     default:
         break;

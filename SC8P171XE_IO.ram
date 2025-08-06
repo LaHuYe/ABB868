@@ -1,28 +1,4 @@
 [CMSC]
-TMR0=07,0001,01,00
-PORTA=07,0005,01,00
-PORTB=07,0006,01,00
-WPUA=07,0007,01,00
-IOCA=07,0009,01,00
-INTCON=07,000B,01,00
-T2CON=07,0012,01,00
-PWMD0L=07,0016,01,00
-PWMTL=07,0019,01,00
-PWMTH=07,001A,01,00
-PWMCON=07,001B,01,00
-ADRESH=07,001E,01,00
-ADCON0=07,001F,01,00
-OPTION_REG=07,0081,01,00
-TRISA=07,0085,01,00
-TRISB=07,0086,01,00
-WDTCON=07,0088,01,00
-OSCCON=07,008F,01,00
-PR2=07,0092,01,00
-ANSELH=07,0094,01,00
-WPUB=07,0095,01,00
-IOCB=07,0096,01,00
-ADRESL=07,009E,01,00
-ADCON1=07,009F,01,00
 adresult=09,00D5,02,00
 adsum=0A,00C7,04,00
 admin=09,00D3,02,00
@@ -82,6 +58,30 @@ Flag_10ms=0E,03D8,00,00
 Cnt10ms=09,00CD,02,00
 Cnt1ms=09,00CB,02,00
 CntSleep=07,0045,01,00
+TMR0=07,0001,01,00
+PORTA=07,0005,01,00
+PORTB=07,0006,01,00
+WPUA=07,0007,01,00
+IOCA=07,0009,01,00
+INTCON=07,000B,01,00
+T2CON=07,0012,01,00
+PWMD0L=07,0016,01,00
+PWMTL=07,0019,01,00
+PWMTH=07,001A,01,00
+PWMCON=07,001B,01,00
+ADRESH=07,001E,01,00
+ADCON0=07,001F,01,00
+OPTION_REG=07,0081,01,00
+TRISA=07,0085,01,00
+TRISB=07,0086,01,00
+WDTCON=07,0088,01,00
+OSCCON=07,008F,01,00
+PR2=07,0092,01,00
+ANSELH=07,0094,01,00
+WPUB=07,0095,01,00
+IOCB=07,0096,01,00
+ADRESL=07,009E,01,00
+ADCON1=07,009F,01,00
 set_led_dirct_state@index=00,0053,02,00
 set_led_state@index=00,0053,02,00
 set_led_state@state=00,0055,01,00
@@ -97,7 +97,7 @@ AdcOneChk@i=07,0056,01,00
 AdcOneChk@adldo=07,0053,01,00
 i1set_led_state@index=00,0070,02,00
 i1set_led_state@state=00,0072,01,00
-[S S2232|Period:07,01,00|DutyLow:07,01,01|DutyHigh:07,01,02|normal_duty_change_value:07,01,03|mid_duty_change_value:07,01,04|time:07,01,05|mid_duty:07,01,06|
-[S S1047|mode:07,01,00|mode_out_put:07,01,01|work_mode_count:09,02,02|times:07,01,04|
-[S S704|mode_select_time:09,02,00|work_updown_count:0A,04,02|work_change_count:09,02,06|charge_to_oldmode_count:09,02,08|
-[S S1062|water_mode:07,01,00|water_mode_out_put:07,01,01|water_mode_count:09,02,02|times:07,01,04|
+[S S2226|Period:07,01,00|DutyLow:07,01,01|DutyHigh:07,01,02|normal_duty_change_value:07,01,03|mid_duty_change_value:07,01,04|time:07,01,05|mid_duty:07,01,06|
+[S S1037|mode:07,01,00|mode_out_put:07,01,01|work_mode_count:09,02,02|times:07,01,04|
+[S S1354|mode_select_time:09,02,00|work_updown_count:0A,04,02|work_change_count:09,02,06|charge_to_oldmode_count:09,02,08|
+[S S1052|water_mode:07,01,00|water_mode_out_put:07,01,01|water_mode_count:09,02,02|times:07,01,04|
