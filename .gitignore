@@ -1,0 +1,6 @@
+# 屏蔽所有路径下的 output 文件夹中的文件
+**/output/*
+output/*
+
+# 屏蔽 .vscode 文件夹
+.vscode/*
