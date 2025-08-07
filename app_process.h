@@ -15,7 +15,8 @@ typedef enum
     // WORK_STATE_POWEROFF_MODE_LED,
     WORK_STATE_LOWBAT_LED,
     WORK_STATE_OLD_MODE_RUN,
-    WORK_STATE_NULL
+    WORK_STATE_NULL,
+	WORK_STATE_MODE_LED // <--- ÐÂÔöµÄ×´Ì¬
 } work_state_t;
 
 
@@ -76,7 +77,7 @@ void app_process_work(void);
 void app_process_go_to_sleep(void);
 void turn_off(void);
 
-
+void app_process_mode_led_display(void);
 
 
 

@@ -29,10 +29,10 @@ typedef struct
 extern key_state_t key_state;
 
 
-extern volatile unsigned int KeyPressCnt1;
+extern volatile unsigned char KeyPressCnt1;
 extern volatile unsigned char KeyRelaxCnt1;
 
-extern volatile unsigned int KeyPressCnt2;
+extern volatile unsigned char KeyPressCnt2;
 extern volatile unsigned char KeyRelaxCnt2;
 
 

@@ -3,6 +3,36 @@
 uint8_t work_step;
 volatile work_state_t app_work_state =  WORK_STATE_POWEROFF;
 uint16_t bat_remind_timer;	
+// 定义一个全局计时器
+static uint16_t mode_led_display_timer;
+
+// 新增一个处理函数
+void app_process_mode_led_display()
+{
+    if (!work_step)
+    {
+        // 1. 确保电机是关闭的
+        work_mode.mode_out_put = WORK_MODE_IDEL;
+        // 2. 确保模式灯是根据当前模式点亮的
+        app_led_mode_set();
+        // 3. 启动15秒倒计时
+        mode_led_display_timer = SECOND(15);
+        work_step++;
+    }
+    else
+    {
+        // 4. 开始倒计时
+        if (mode_led_display_timer)
+        {
+            mode_led_display_timer--;
+            if (!mode_led_display_timer)
+            {
+                // 5. 时间到，自动关机（回到彻底的POWEROFF状态）
+                app_process_set_work_state(WORK_STATE_POWEROFF);
+            }
+        }
+    }
+}
 
 app_process_mode_t work_mode = 
 {
@@ -228,6 +258,10 @@ void app_process_work()
     if (app_work_state == WORK_STATE_CHARGING)
     {
         app_process_charing();
+    }
+	if (app_work_state == WORK_STATE_MODE_LED)
+    {
+        app_process_mode_led_display();
     }
     // if (app_work_state == WORK_STATE_OLD_MODE_RUN)
     // {

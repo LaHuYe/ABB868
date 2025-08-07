@@ -46,7 +46,7 @@ void app_process_set_mode_next(void)
 	{
 		work_mode.mode = WORK_MODE_ONE;
 	}
-    app_timer.work_updown_count = SECOND(5);
+    //app_timer.work_updown_count = SECOND(5);
     app_led_mode_set();
 	app_process_motor_duty();
 }
